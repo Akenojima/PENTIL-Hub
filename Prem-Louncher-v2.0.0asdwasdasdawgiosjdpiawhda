@@ -1,0 +1,1804 @@
+-- ================================================
+-- AKENO LAUNCHER v1.0 (THEMED - unified UI across all scripts)
+-- Hub for: Evade Swapper | RTX Graphics | Visual Korblox
+-- All scripts share the same dark violet/magenta launcher theme
+-- MODIFIKASI: Tanpa key system, tanpa warna korblox, + Stretch Y
+-- ================================================
+
+local readfile  = readfile  or (file and file.read)
+local writefile = writefile or (file and file.write)
+
+local function waitUntilLoaded(timeout)
+    local t = 0
+    repeat task.wait(0.1); t = t + 0.1
+    until game:IsLoaded() or t >= (timeout or 30)
+end
+waitUntilLoaded(30)
+
+local Players      = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local HttpService  = game:GetService("HttpService")
+local UIS          = game:GetService("UserInputService")
+local RunService   = game:GetService("RunService")
+local Lighting     = game:GetService("Lighting")
+
+local LocalPlayer  = Players.LocalPlayer or Players:WaitForChild("LocalPlayer", 15)
+if not LocalPlayer then return end
+local PlayerGui    = LocalPlayer:WaitForChild("PlayerGui", 15)
+if not PlayerGui then return end
+
+-- ================================================
+-- GLOBAL THEME
+-- ================================================
+local THEME = {
+    bg       = Color3.fromRGB(7,  5,  18),
+    bg2      = Color3.fromRGB(14, 9,  32),
+    bg3      = Color3.fromRGB(24, 14, 52),
+    bg4      = Color3.fromRGB(18, 11, 40),
+    violet   = Color3.fromRGB(160, 60, 255),
+    magenta  = Color3.fromRGB(220, 40, 255),
+    deep     = Color3.fromRGB(100, 20, 200),
+    accent3  = Color3.fromRGB(100, 40, 200),
+    text     = Color3.fromRGB(230, 215, 255),
+    dim      = Color3.fromRGB(140, 110, 190),
+    muted    = Color3.fromRGB(70,  50, 110),
+    green    = Color3.fromRGB(60,  255, 160),
+    red      = Color3.fromRGB(255, 60,  110),
+    white    = Color3.fromRGB(255, 255, 255),
+    cyan     = Color3.fromRGB(80,  220, 255),
+    gold     = Color3.fromRGB(255, 200, 80),
+    pink     = Color3.fromRGB(255, 100, 200),
+}
+
+local function TW(obj, props, t, style, dir)
+    TweenService:Create(obj, TweenInfo.new(t or 0.2, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out), props):Play()
+end
+local function MkCorner(r, p) Instance.new("UICorner", p).CornerRadius = UDim.new(0, r or 8) end
+local function MkStroke(col, thick, parent)
+    local s = Instance.new("UIStroke", parent)
+    s.Color = col or THEME.violet; s.Thickness = thick or 1; return s
+end
+local function MkGrad(parent, c1, c2, rot)
+    local g = Instance.new("UIGradient", parent)
+    g.Color = ColorSequence.new(c1, c2); g.Rotation = rot or 0; return g
+end
+local function MkFrame(parent, size, pos, color, alpha)
+    local f = Instance.new("Frame", parent)
+    f.Size = size; f.Position = pos or UDim2.new(0,0,0,0)
+    f.BackgroundColor3 = color or THEME.bg2
+    f.BackgroundTransparency = alpha or 0
+    f.BorderSizePixel = 0; return f
+end
+local function MkLabel(parent, text, size, pos, color, fs, bold, xa)
+    local l = Instance.new("TextLabel", parent)
+    l.Size = size; l.Position = pos or UDim2.new(0,0,0,0)
+    l.BackgroundTransparency = 1; l.Text = text
+    l.TextColor3 = color or THEME.text; l.TextSize = fs or 12
+    l.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
+    l.TextXAlignment = xa or Enum.TextXAlignment.Left
+    l.BorderSizePixel = 0; return l
+end
+local function MkBtn(parent, text, size, pos, color, fs)
+    local b = Instance.new("TextButton", parent)
+    b.Size = size; b.Position = pos or UDim2.new(0,0,0,0)
+    b.BackgroundColor3 = color or THEME.violet
+    b.TextColor3 = THEME.white; b.TextSize = fs or 12
+    b.Font = Enum.Font.GothamBold; b.BorderSizePixel = 0
+    b.AutoButtonColor = false; b.Text = text
+    MkCorner(8, b)
+    b.MouseEnter:Connect(function() TW(b,{BackgroundColor3=color:Lerp(THEME.white,0.15)},0.12) end)
+    b.MouseLeave:Connect(function() TW(b,{BackgroundColor3=color},0.12) end)
+    return b
+end
+
+local function MkToggleBtn(parent, text, size, pos, color, fs)
+    local b = Instance.new("TextButton", parent)
+    b.Size = size; b.Position = pos or UDim2.new(0,0,0,0)
+    b.BackgroundColor3 = color or THEME.violet
+    b.TextColor3 = THEME.white; b.TextSize = fs or 12
+    b.Font = Enum.Font.GothamBold; b.BorderSizePixel = 0
+    b.AutoButtonColor = false; b.Text = text
+    MkCorner(8, b)
+    b.MouseButton1Down:Connect(function() b.BackgroundTransparency = 0.3 end)
+    b.MouseButton1Up:Connect(function() b.BackgroundTransparency = 0 end)
+    return b
+end
+
+local function MkTitleBar(parent, height, title, subtitle, iconTag)
+    local bar = MkFrame(parent, UDim2.new(1,0,0,height), UDim2.new(0,0,0,0), THEME.bg4)
+    bar.Active = true
+    MkCorner(14, bar)
+    MkFrame(bar, UDim2.new(1,0,0,14), UDim2.new(0,0,1,-14), THEME.bg4)
+    local strip = MkFrame(bar, UDim2.new(0.5,0,0,2), UDim2.new(0.25,0,0,0), THEME.violet)
+    MkCorner(2, strip); MkGrad(strip, THEME.violet, THEME.magenta)
+    local wash = MkFrame(bar, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), THEME.violet, 0.90)
+    MkGrad(wash, THEME.violet, THEME.magenta)
+    local dot = MkFrame(bar, UDim2.new(0,7,0,7), UDim2.new(0,14,0.5,-3.5), THEME.green)
+    MkCorner(4, dot)
+    task.spawn(function()
+        while dot and dot.Parent do
+            TW(dot,{BackgroundTransparency=0.55},0.7,Enum.EasingStyle.Sine); task.wait(0.75)
+            if not dot or not dot.Parent then break end
+            TW(dot,{BackgroundTransparency=0},0.7,Enum.EasingStyle.Sine); task.wait(0.75)
+        end
+    end)
+    local badge = MkFrame(bar, UDim2.new(0,28,0,28), UDim2.new(0,28,0.5,-14), THEME.bg3)
+    MkCorner(8, badge); MkStroke(THEME.violet, 1, badge)
+    local logoImg = Instance.new("ImageLabel", badge)
+    logoImg.Size = UDim2.fromScale(1,1); logoImg.BackgroundTransparency = 1
+    logoImg.Image = "rbxassetid://84057217941098"
+    Instance.new("UIAspectRatioConstraint", logoImg).AspectRatio = 1
+    if iconTag then
+        local tagF = MkFrame(bar, UDim2.new(0,58,0,16), UDim2.new(0,62,0,8), THEME.violet, 0.75)
+        MkCorner(5, tagF); MkStroke(THEME.violet, 0.8, tagF)
+        MkLabel(tagF, iconTag, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), THEME.violet, 8, true, Enum.TextXAlignment.Center)
+    end
+    MkLabel(bar, title,    UDim2.new(1,-100,0,18), UDim2.new(0,62,0,iconTag and 26 or 8),  THEME.text, 12, true)
+    if subtitle then
+        MkLabel(bar, subtitle, UDim2.new(1,-100,0,14), UDim2.new(0,62,0, iconTag and 44 or 28), THEME.dim,  9, false)
+    end
+    local pStroke = MkStroke(THEME.violet, 1.2, parent)
+    task.spawn(function()
+        while parent and parent.Parent do
+            TW(pStroke,{Color=THEME.magenta},1.6,Enum.EasingStyle.Sine); task.wait(1.7)
+            if not parent or not parent.Parent then break end
+            TW(pStroke,{Color=THEME.violet},1.6,Enum.EasingStyle.Sine); task.wait(1.7)
+        end
+    end)
+    return bar, pStroke
+end
+
+local function MkScanline(parent)
+    local sl = MkFrame(parent, UDim2.new(1,0,0,1), UDim2.new(0,0,0,0), THEME.magenta, 0.55)
+    sl.ZIndex = 9
+    local g = Instance.new("UIGradient", sl)
+    g.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0,0,0)),
+        ColorSequenceKeypoint.new(0.5, THEME.magenta),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0,0,0)),
+    })
+    task.spawn(function()
+        while parent and parent.Parent do
+            TW(sl,{Position=UDim2.new(0,0,1,0),BackgroundTransparency=0.85},2.8,Enum.EasingStyle.Linear); task.wait(2.9)
+            if not parent or not parent.Parent then break end
+            sl.Position=UDim2.new(0,0,0,0); sl.BackgroundTransparency=0.55; task.wait(0.1)
+        end
+    end)
+    return sl
+end
+
+local function MkOrbBg(parent)
+    local defs = {
+        {Color3.fromRGB(140,20,255),0.15,0.20,28},
+        {Color3.fromRGB(200,20,240),0.78,0.15,22},
+        {Color3.fromRGB(100,10,190),0.88,0.72,32},
+        {Color3.fromRGB(180,50,255),0.10,0.80,20},
+        {Color3.fromRGB(220,40,200),0.50,0.50,18},
+    }
+    local orbData = {}
+    for i, def in ipairs(defs) do
+        local sz = def[4]
+        local orb = MkFrame(parent, UDim2.new(0,sz,0,sz), UDim2.new(def[2],0,def[3],0), def[1], 0.74)
+        orb.AnchorPoint = Vector2.new(0.5,0.5); MkCorner(sz/2, orb)
+        orbData[i] = {orb=orb,bx=def[2],by=def[3],px=math.random(0,628)/100,py=math.random(0,628)/100,spd=math.random(5,9)/10,ax=math.random(3,6)/100,ay=math.random(3,6)/100}
+    end
+    local t = 0
+    task.spawn(function()
+        while parent and parent.Parent do
+            t = t + 0.016
+            for _,d in ipairs(orbData) do
+                if d.orb and d.orb.Parent then
+                    d.orb.Position = UDim2.new(d.bx+math.sin(t*d.spd+d.px)*d.ax,0,d.by+math.cos(t*d.spd+d.py)*d.ay,0)
+                    d.orb.BackgroundTransparency = 0.70+math.sin(t*d.spd*1.2+d.px)*0.12
+                end
+            end
+            task.wait(0.03)
+        end
+    end)
+end
+
+local function MkFooter(parent, totalH, text)
+    local div = MkFrame(parent, UDim2.new(1,0,0,1), UDim2.new(0,0,0,totalH-30), THEME.violet, 0.6)
+    MkGrad(div, Color3.fromRGB(0,0,0), THEME.magenta)
+    local foot = MkLabel(parent, text, UDim2.new(1,0,0,24), UDim2.new(0,0,0,totalH-29), THEME.muted, 9, true, Enum.TextXAlignment.Center)
+    return foot
+end
+
+local function MkDivider(parent, yPos, w)
+    local d = MkFrame(parent, UDim2.new(w or 1, 0, 0, 1), UDim2.new(0,0,0,yPos), THEME.violet, 0.55)
+    local g = Instance.new("UIGradient", d)
+    g.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(0,0,0)),
+        ColorSequenceKeypoint.new(0.5, THEME.magenta),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(0,0,0)),
+    })
+    return d
+end
+
+local function MkSection(parent, text, yPos)
+    local bg = MkFrame(parent, UDim2.new(1,0,0,22), UDim2.new(0,0,0,yPos), THEME.bg3, 0)
+    MkCorner(6, bg); MkStroke(THEME.violet, 0.6, bg)
+    local wash = MkFrame(bg, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), THEME.violet, 0.88)
+    MkCorner(6, wash); MkGrad(wash, THEME.violet, THEME.magenta)
+    MkLabel(bg, "  "..text, UDim2.new(1,-10,1,0), UDim2.new(0,4,0,0), THEME.text, 9, true)
+    return bg
+end
+
+local function MkDraggable(titleBar, mainFrame)
+    local dragging = false; local dragStart = nil; local startPos = nil
+    titleBar.InputBegan:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true; dragStart = i.Position; startPos = mainFrame.Position
+        end
+    end)
+    titleBar.InputEnded:Connect(function(i)
+        if i.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+    end)
+    UIS.InputChanged:Connect(function(i)
+        if dragging and i.UserInputType == Enum.UserInputType.MouseMovement then
+            local d = i.Position - dragStart
+            mainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset+d.X, startPos.Y.Scale, startPos.Y.Offset+d.Y)
+        end
+    end)
+end
+
+local function MkCloseBtn(parent, cb)
+    local btn = MkBtn(parent, "✕", UDim2.new(0,26,0,26), UDim2.new(1,-32,0.5,-13), Color3.fromRGB(165,38,60), 11)
+    btn.ZIndex = 10; btn.MouseButton1Click:Connect(cb); return btn
+end
+
+local function MkToast(guiParent, msg, isErr)
+    local col = isErr and Color3.fromRGB(140,28,55) or Color3.fromRGB(20,110,62)
+    local n = MkFrame(guiParent, UDim2.new(0,340,0,40), UDim2.new(0.5,-170,0,-56), col)
+    n.ZIndex = 99; MkCorner(10, n); MkStroke(isErr and THEME.red or THEME.green, 1, n)
+    local shimmer = MkFrame(n, UDim2.new(1,0,0.45,0), UDim2.new(0,0,0,0), THEME.white, 0.91)
+    MkCorner(10, shimmer)
+    local icon = isErr and "⚠  " or "✓  "
+    local lbl = MkLabel(n, icon..msg, UDim2.new(1,-14,1,0), UDim2.new(0,8,0,0), THEME.white, 12, true)
+    lbl.ZIndex = 100
+    TweenService:Create(n, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {Position=UDim2.new(0.5,-170,0,8)}):Play()
+    task.delay(2.8, function()
+        if not n or not n.Parent then return end
+        TweenService:Create(n, TweenInfo.new(0.2), {Position=UDim2.new(0.5,-170,0,-56)}):Play()
+        task.wait(0.25); if n and n.Parent then n:Destroy() end
+    end)
+end
+
+-- ================================================
+-- GLITCH / INTRO ENGINE
+-- ================================================
+local CI = {
+    ACCENT  = Color3.fromRGB(160, 80,  255),
+    ACCENT2 = Color3.fromRGB(220, 60,  255),
+    ACCENT3 = Color3.fromRGB(100, 40,  200),
+    WHITE   = Color3.fromRGB(255, 255, 255),
+    GREEN   = Color3.fromRGB(60,  255, 160),
+    CYAN    = Color3.fromRGB(80,  220, 255),
+    RED     = Color3.fromRGB(255,  40,  80),
+    GOLD    = Color3.fromRGB(255, 200,  80),
+    PINK    = Color3.fromRGB(255, 100, 200),
+}
+local T_SMOOTH = function(t) return TweenInfo.new(t or 0.3, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut) end
+local T_BACK   = function(t) return TweenInfo.new(t or 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.Out) end
+local T_QUART  = function(t) return TweenInfo.new(t or 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.Out) end
+local T_EXPO   = function(t) return TweenInfo.new(t or 0.5, Enum.EasingStyle.Exponential, Enum.EasingDirection.Out) end
+local T_LIN    = function(t) return TweenInfo.new(t or 1.0, Enum.EasingStyle.Linear) end
+local T_IN     = function(t) return TweenInfo.new(t or 0.4, Enum.EasingStyle.Quart, Enum.EasingDirection.In) end
+local function New(class,props)
+    local o=Instance.new(class); for k,v in pairs(props or {}) do o[k]=v end; return o
+end
+local function Corner(r,p) Instance.new("UICorner",p).CornerRadius=UDim.new(0,r or 8) end
+local function Stroke2(col,thick,parent) local s=Instance.new("UIStroke",parent); s.Color=col or CI.ACCENT2; s.Thickness=thick or 1; return s end
+local function Tween(obj,info,props) return TweenService:Create(obj,info,props) end
+local function FlashScreen(sg,col,intensity,duration)
+    local f=New("Frame",{Size=UDim2.fromScale(1,1),BackgroundColor3=col or CI.WHITE,BackgroundTransparency=1-(intensity or 0.3),BorderSizePixel=0,ZIndex=200,Parent=sg})
+    Tween(f,TweenInfo.new(duration or 0.35,Enum.EasingStyle.Sine,Enum.EasingDirection.Out),{BackgroundTransparency=1}):Play()
+    task.delay((duration or 0.35)+0.05,function() if f.Parent then f:Destroy() end end)
+end
+local GlitchEngine={}
+function GlitchEngine.SliceGlitch(sg,intensity,duration)
+    intensity=intensity or 1;duration=duration or 0.09;local slices={}
+    for i=1,math.random(3,8) do local h=math.random(1,5)/100;local xOff=(math.random()-0.5)*2*60*intensity;local yPos=math.random(5,90)/100;local col=({CI.ACCENT2,CI.CYAN,CI.ACCENT,CI.PINK,CI.WHITE})[math.random(1,5)];local sl=New("Frame",{Size=UDim2.new(1,0,h,0),Position=UDim2.new(0,xOff,yPos,0),BackgroundColor3=col,BackgroundTransparency=math.random(40,65)/100,BorderSizePixel=0,ZIndex=150,Parent=sg});slices[i]=sl;Tween(sl,TweenInfo.new(duration*1.4,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{Position=UDim2.new(0,xOff+(math.random()<0.5 and 120 or -120)*intensity,yPos,0),BackgroundTransparency=1}):Play() end
+    task.delay(duration*1.6,function() for _,s in ipairs(slices) do if s and s.Parent then s:Destroy() end end end)
+end
+function GlitchEngine.ChromaticBleed(sg,intensity,duration)
+    intensity=intensity or 1;duration=duration or 0.14;local cfgs={{col=Color3.fromRGB(255,0,60),xOff=intensity*10,yOff=0,alpha=0.18},{col=Color3.fromRGB(0,255,200),xOff=-intensity*8,yOff=intensity*4,alpha=0.18},{col=Color3.fromRGB(60,60,255),xOff=intensity*5,yOff=-intensity*5,alpha=0.14}};local frames={}
+    for _,cfg in ipairs(cfgs) do local f=New("Frame",{Size=UDim2.fromScale(1,1),Position=UDim2.new(0,cfg.xOff,0,cfg.yOff),BackgroundColor3=cfg.col,BackgroundTransparency=1-cfg.alpha,BorderSizePixel=0,ZIndex=148,Parent=sg});table.insert(frames,f);Tween(f,TweenInfo.new(duration*1.5,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{Position=UDim2.new(0,cfg.xOff*0.3,0,cfg.yOff*0.3),BackgroundTransparency=1}):Play() end
+    task.delay(duration*1.6,function() for _,f in ipairs(frames) do if f and f.Parent then f:Destroy() end end end)
+end
+function GlitchEngine.StaticBurst(sg,intensity,duration)
+    intensity=intensity or 1;duration=duration or 0.07;local lines={}
+    for i=1,math.floor(12*intensity) do local w=math.random(15,85)/100;local l=New("Frame",{Size=UDim2.new(w,0,0,math.random(1,3)),Position=UDim2.new(math.random(0,math.floor((1-w)*100))/100,0,math.random(5,95)/100,0),BackgroundColor3=({CI.WHITE,CI.ACCENT2,CI.CYAN,CI.PINK})[math.random(1,4)],BackgroundTransparency=math.random(25,55)/100,BorderSizePixel=0,ZIndex=149,Parent=sg});table.insert(lines,l);Tween(l,TweenInfo.new(duration*1.8,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{BackgroundTransparency=1}):Play() end
+    task.delay(duration*2,function() for _,l in ipairs(lines) do if l and l.Parent then l:Destroy() end end end)
+end
+function GlitchEngine.PixelCorrupt(sg,intensity,duration)
+    intensity=intensity or 1;duration=duration or 0.08;local blocks={}
+    for i=1,math.floor(18*intensity) do local sz=math.random(4,16);local b=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(math.random(5,95)/100,0,math.random(5,95)/100,0),Size=UDim2.new(0,sz*0.5,0,sz*0.5),BackgroundColor3=({CI.ACCENT,CI.ACCENT2,CI.CYAN,CI.WHITE,CI.RED,CI.PINK,CI.GOLD})[math.random(1,7)],BackgroundTransparency=math.random(0,30)/100,BorderSizePixel=0,ZIndex=147,Parent=sg});table.insert(blocks,b);Tween(b,TweenInfo.new(0.05,Enum.EasingStyle.Back,Enum.EasingDirection.Out),{Size=UDim2.new(0,sz,0,sz)}):Play();task.delay(duration*0.6,function() if b and b.Parent then Tween(b,TweenInfo.new(duration*0.8,Enum.EasingStyle.Quad,Enum.EasingDirection.In),{BackgroundTransparency=1,Size=UDim2.new(0,sz*0.3,0,sz*0.3)}):Play() end end) end
+    task.delay(duration*1.6,function() for _,b in ipairs(blocks) do if b and b.Parent then b:Destroy() end end end)
+end
+function GlitchEngine.DataCorrupt(sg,intensity,duration)
+    intensity=intensity or 1;duration=duration or 0.3;local chars="01001101010001101001001011100101";local hexChars="0123456789ABCDEF";local labels={}
+    for i=1,math.floor(14*intensity) do local text="";local isHex=math.random()<0.5;local src=isHex and hexChars or chars;for _=1,math.random(2,5) do text=text..src:sub(math.random(1,#src),math.random(1,#src)) end;local col=({CI.ACCENT2,CI.CYAN,CI.GREEN,CI.ACCENT})[math.random(1,4)];local lbl=New("TextLabel",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(math.random(5,95)/100,0,math.random(5,95)/100,0),Size=UDim2.new(0,80,0,16),BackgroundTransparency=1,Text=text,TextColor3=col,TextTransparency=0.2,TextSize=math.random(9,13),Font=Enum.Font.Code,BorderSizePixel=0,ZIndex=152,Parent=sg});table.insert(labels,lbl);local yStart=lbl.Position.Y.Scale;Tween(lbl,TweenInfo.new(duration*1.2,Enum.EasingStyle.Sine,Enum.EasingDirection.Out),{Position=UDim2.new(lbl.Position.X.Scale,0,yStart-0.04,0),TextTransparency=1}):Play() end
+    task.delay(duration*1.4,function() for _,l in ipairs(labels) do if l and l.Parent then l:Destroy() end end end)
+end
+function GlitchEngine.VignettePulse(sg,col,intensity,duration)
+    col=col or CI.ACCENT2;intensity=intensity or 0.7;duration=duration or 0.25;local frames={}
+    local sides={{UDim2.new(0,0,0,0),UDim2.new(0.08,0,1,0)},{UDim2.new(0.92,0,0,0),UDim2.new(0.08,0,1,0)},{UDim2.new(0,0,0,0),UDim2.new(1,0,0.06,0)},{UDim2.new(0,0,0.94,0),UDim2.new(1,0,0.06,0)}}
+    for _,s in ipairs(sides) do local f=New("Frame",{Position=s[1],Size=s[2],BackgroundColor3=col,BackgroundTransparency=1-intensity*0.55,BorderSizePixel=0,ZIndex=145,Parent=sg});table.insert(frames,f);Tween(f,TweenInfo.new(duration*1.3,Enum.EasingStyle.Sine,Enum.EasingDirection.Out),{BackgroundTransparency=1}):Play() end
+    task.delay(duration*1.5,function() for _,f in ipairs(frames) do if f and f.Parent then f:Destroy() end end end)
+end
+function GlitchEngine.ScanlineBurst(sg,intensity,duration)
+    intensity=intensity or 1;duration=duration or 0.12;local lines={}
+    for i=1,math.floor(30*intensity) do local yPos=i/(30*intensity);local l=New("Frame",{Size=UDim2.new(1,0,0,1),Position=UDim2.new(0,0,yPos,0),BackgroundColor3=CI.ACCENT2,BackgroundTransparency=math.random(55,85)/100,BorderSizePixel=0,ZIndex=146,Parent=sg});table.insert(lines,l);Tween(l,TweenInfo.new(duration*2,Enum.EasingStyle.Sine,Enum.EasingDirection.In),{BackgroundTransparency=1}):Play() end
+    task.delay(duration*2.2,function() for _,l in ipairs(lines) do if l and l.Parent then l:Destroy() end end end)
+end
+function GlitchEngine.WarpDistort(sg,intensity,duration)
+    intensity=intensity or 1;duration=duration or 0.2;local strips={}
+    for i=1,math.random(5,10) do local yFrac=(i-1)/10;local h=1/10;local xOff=(math.random()-0.5)*2*25*intensity;local s=New("Frame",{Size=UDim2.new(1,0,h+0.01,0),Position=UDim2.new(0,xOff,yFrac,0),BackgroundColor3=Color3.fromRGB(4,2,12),BackgroundTransparency=math.random(60,80)/100,BorderSizePixel=0,ZIndex=155,Parent=sg});table.insert(strips,s);Tween(s,TweenInfo.new(duration*1.5,Enum.EasingStyle.Quad,Enum.EasingDirection.InOut),{Position=UDim2.new(0,0,yFrac,0),BackgroundTransparency=1}):Play() end
+    task.delay(duration*1.7,function() for _,s in ipairs(strips) do if s and s.Parent then s:Destroy() end end end)
+end
+function GlitchEngine.Sequence(sg,intensity,duration)
+    intensity=intensity or 1;local endTime=tick()+duration;local startTime=tick()
+    task.spawn(function()
+        while tick()<endTime do local prog=(tick()-startTime)/duration;local dynI=intensity*(0.7+prog*0.8);local roll=math.random();if roll<0.18 then GlitchEngine.SliceGlitch(sg,dynI,math.random(5,10)/100) elseif roll<0.32 then GlitchEngine.ChromaticBleed(sg,dynI*0.9,math.random(8,14)/100) elseif roll<0.45 then GlitchEngine.StaticBurst(sg,dynI,math.random(4,9)/100) elseif roll<0.58 then GlitchEngine.PixelCorrupt(sg,dynI*0.8,math.random(6,11)/100) elseif roll<0.68 then GlitchEngine.DataCorrupt(sg,dynI*0.7,math.random(18,35)/100) elseif roll<0.76 then GlitchEngine.VignettePulse(sg,CI.ACCENT2,dynI*0.6,math.random(15,25)/100) elseif roll<0.86 then GlitchEngine.WarpDistort(sg,dynI*0.5,math.random(12,22)/100) else GlitchEngine.ScanlineBurst(sg,dynI*0.4,math.random(8,14)/100) end;local interval=math.random(3,14)/100*(1-prog*0.5);task.wait(math.max(interval,0.02)) end
+    end)
+end
+function GlitchEngine.Climax(sg,intensity)
+    intensity=intensity or 2;GlitchEngine.SliceGlitch(sg,intensity,0.08);GlitchEngine.ChromaticBleed(sg,intensity,0.12);GlitchEngine.PixelCorrupt(sg,intensity,0.10);GlitchEngine.ScanlineBurst(sg,intensity*0.7,0.15);GlitchEngine.WarpDistort(sg,intensity*0.8,0.18)
+    task.delay(0.05,function() GlitchEngine.DataCorrupt(sg,intensity*0.9,0.25);GlitchEngine.VignettePulse(sg,CI.ACCENT2,intensity*0.8,0.2) end)
+end
+
+local function SmoothNoise(t,seed,freq,octaves) freq=freq or 0.4;octaves=octaves or 3;local v,amp,total=0,1,0;for i=1,octaves do local f=freq*(2^(i-1));v=v+math.sin(t*f+seed*7.3+i*2.1)*math.cos(t*f*0.7+seed*3.1+i*1.3)*amp;total=total+amp;amp=amp*0.5 end;return v/total end
+local NullCamera={}; NullCamera.__index=NullCamera
+function NullCamera.new() local self=setmetatable({},NullCamera);self.posX=0;self.posY=0;self.rotX=0;self.rotY=0;self.roll=0;self.tPosX=0;self.tPosY=0;self.tRotX=0;self.tRotY=0;self.tRoll=0;self.layers={};self.time=0;self.seedX=math.random(1,100);self.seedY=math.random(1,100);self.seedRX=math.random(1,100);self.seedRY=math.random(1,100);self.seedRoll=math.random(1,100);self.shakeX=0;self.shakeY=0;self.shakeR=0;self.shakeDecay=0;return self end
+function NullCamera:RegisterLayer(frame,depthZ,baseX,baseY) table.insert(self.layers,{frame=frame,depth=depthZ or 1,baseX=baseX or 0,baseY=baseY or 0,currX=0,currY=0,currR=0}) end
+function NullCamera:Shake(amplitude,duration) self.shakeX=amplitude;self.shakeY=amplitude*0.6;self.shakeR=amplitude*0.3;self.shakeDecay=duration or 0.5;self._shakeTime=0 end
+function NullCamera:Update(dt)
+    self.time=self.time+dt;local t=self.time;self.tPosX=SmoothNoise(t,self.seedX,0.13,4)*26;self.tPosY=SmoothNoise(t,self.seedY,0.10,4)*16;self.tRotX=SmoothNoise(t,self.seedRX,0.08,3)*2.0;self.tRotY=SmoothNoise(t,self.seedRY,0.09,3)*2.8;self.tRoll=SmoothNoise(t,self.seedRoll,0.06,2)*1.4;local lp=1-math.exp(-dt*2.2);self.posX=self.posX+(self.tPosX-self.posX)*lp;self.posY=self.posY+(self.tPosY-self.posY)*lp;self.rotX=self.rotX+(self.tRotX-self.rotX)*lp;self.rotY=self.rotY+(self.tRotY-self.rotY)*lp;self.roll=self.roll+(self.tRoll-self.roll)*lp
+    local sx,sy,sr=0,0,0;if self.shakeDecay and self.shakeDecay>0 then self._shakeTime=(self._shakeTime or 0)+dt;local prog=math.min(self._shakeTime/self.shakeDecay,1);local env=(1-prog)*math.exp(-prog*4);sx=math.sin(t*60+1)*self.shakeX*env;sy=math.cos(t*55+2)*self.shakeY*env;sr=math.sin(t*45+3)*self.shakeR*env;if prog>=1 then self.shakeDecay=0 end end
+    for _,L in ipairs(self.layers) do if L.frame and L.frame.Parent then local d=L.depth;local px=(self.posX+sx)*d*0.6;local py=(self.posY+sy)*d*0.45;local ry_shift=math.sin(math.rad(self.rotY+sr*20))*80*d;local rx_shift=math.sin(math.rad(self.rotX))*50*d;local roll_deg=(self.roll+sr*0.5)*d*0.35;local scale=1+d*0.012*math.abs(SmoothNoise(t,L.depth*13,0.08,2));local tx=L.baseX+px+ry_shift;local ty=L.baseY+py+rx_shift;L.currX=L.currX+(tx-L.currX)*(1-math.exp(-dt*6));L.currY=L.currY+(ty-L.currY)*(1-math.exp(-dt*6));L.currR=L.currR+(roll_deg-L.currR)*(1-math.exp(-dt*4));L.frame.Position=UDim2.new(0.5,L.currX,0.5,L.currY);L.frame.Rotation=L.currR;local sw=1+(scale-1)*0.5;L.frame.Size=UDim2.new(sw,0,sw,0) end end
+end
+local ShakeEngine={}; ShakeEngine.__index=ShakeEngine
+function ShakeEngine.new() local self=setmetatable({},ShakeEngine);self.shakes={};self.connection=nil;self.active=false;self._disabled=false;self.baseCF=CFrame.new();self._oldCamType=nil;self.camera=nil;local cam=nil;local waited=0;while not cam and waited<5 do cam=game:GetService("Workspace").CurrentCamera;if not cam then task.wait(0.1);waited=waited+0.1 end end;if not cam then self._disabled=true;return self end;self.camera=cam;self.baseCF=cam.CFrame;self._oldCamType=cam.CameraType;pcall(function() cam.CameraType=Enum.CameraType.Scriptable end);return self end
+function ShakeEngine:Add(p) if self._disabled then return end;table.insert(self.shakes,{amplitude=p.amplitude or 0.5,frequency=p.frequency or 14,duration=p.duration or 0.6,decay=p.decay or 3.5,style=p.style or "slam",rotAmp=p.rotAmp or (p.amplitude or 0.5)*0.35,zAmp=p.zAmp or (p.amplitude or 0.5)*0.5,elapsed=0,seed=math.random(1000,9999)}) end
+function ShakeEngine:Start() if self.active or self._disabled or not self.camera then return end;self.active=true;self.connection=RunService.RenderStepped:Connect(function(dt) local cam=self.camera;if not cam or not cam.Parent then return end;local tx,ty,tz,rx,ry,rz=0,0,0,0,0,0;local i=1;while i<=#self.shakes do local s=self.shakes[i];s.elapsed=s.elapsed+dt;local prog=math.min(s.elapsed/s.duration,1);local decay=math.exp(-s.decay*prog);local t2=s.elapsed*s.frequency+s.seed;if s.style=="slam" then local slam=math.exp(-s.decay*prog*0.5)*math.cos(prog*18)*(1-prog);tx=tx+slam*s.amplitude;ty=ty+math.abs(slam)*s.amplitude*0.5;tz=tz+slam*s.zAmp*1.2;rz=rz+slam*s.rotAmp*0.8 elseif s.style=="rumble" then tx=tx+(math.random()*2-1)*s.amplitude*decay;ty=ty+(math.random()*2-1)*s.amplitude*decay;rx=rx+(math.random()*2-1)*s.rotAmp*decay;ry=ry+(math.random()*2-1)*s.rotAmp*decay elseif s.style=="wave" then local wave=math.sin(prog*math.pi*1.5)*decay;tx=tx+math.sin(t2*0.25)*s.amplitude*wave;ty=ty+math.cos(t2*0.18)*s.amplitude*0.5*wave elseif s.style=="pulse" then local pulse=math.sin(prog*math.pi)*decay;tx=tx+math.cos(t2*0.3)*s.amplitude*pulse;ty=ty+math.sin(t2*0.2)*s.amplitude*pulse*0.7;rz=rz+pulse*s.rotAmp*0.5 end;if s.elapsed>=s.duration then table.remove(self.shakes,i) else i=i+1 end end;pcall(function() cam.CFrame=self.baseCF*CFrame.new(tx,ty,tz)*CFrame.Angles(math.rad(rx),math.rad(ry),math.rad(rz)) end) end) end
+function ShakeEngine:Stop() self.active=false;if self.connection then self.connection:Disconnect();self.connection=nil end;self.shakes={};if self.camera and self._oldCamType then pcall(function() self.camera.CameraType=self._oldCamType end) end end
+
+local function MakeLoadingBar(cfg)
+    local zIndex=cfg.zIndex or 10;local barColor=cfg.color or CI.ACCENT2;local glow=cfg.glowColor or CI.ACCENT
+    local cont=New("Frame",{AnchorPoint=cfg.anchorPoint or Vector2.new(0.5,0.5),Position=cfg.position,Size=cfg.size,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=zIndex,Parent=cfg.parent})
+    local statusLbl=New("TextLabel",{AnchorPoint=Vector2.new(0,0),Position=UDim2.new(0,0,0,0),Size=UDim2.new(0.7,0,0,14),BackgroundTransparency=1,Text="INITIALIZING PH LOUNCHER...",TextColor3=barColor,TextTransparency=1,TextSize=9,Font=Enum.Font.Code,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=zIndex+2,Parent=cont})
+    local pctLbl=New("TextLabel",{AnchorPoint=Vector2.new(1,0),Position=UDim2.new(1,0,0,0),Size=UDim2.new(0.3,0,0,14),BackgroundTransparency=1,Text="0%",TextColor3=glow,TextTransparency=1,TextSize=9,Font=Enum.Font.GothamBold,TextXAlignment=Enum.TextXAlignment.Right,ZIndex=zIndex+2,Parent=cont})
+    local trackBg=New("Frame",{AnchorPoint=Vector2.new(0,0),Position=UDim2.new(0,0,0,18),Size=UDim2.new(1,0,0,14),BackgroundColor3=Color3.fromRGB(18,8,40),BackgroundTransparency=0,BorderSizePixel=0,ZIndex=zIndex,Parent=cont})
+    Corner(4,trackBg);Stroke2(barColor,0.6,trackBg)
+    local fill=New("Frame",{AnchorPoint=Vector2.new(0,0),Position=UDim2.new(0,0,0,0),Size=UDim2.new(0,0,1,0),BackgroundColor3=barColor,BackgroundTransparency=0,BorderSizePixel=0,ZIndex=zIndex+1,Parent=trackBg})
+    Corner(4,fill)
+    local fillGrad=Instance.new("UIGradient");fillGrad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,glow),ColorSequenceKeypoint.new(0.5,barColor),ColorSequenceKeypoint.new(1,barColor)});fillGrad.Transparency=NumberSequence.new(0);fillGrad.Rotation=0;fillGrad.Offset=Vector2.new(0,0);fillGrad.Parent=fill
+    local halo=New("Frame",{AnchorPoint=Vector2.new(0,0),Position=UDim2.new(0,0,0,17),Size=UDim2.new(0,0,0,18),BackgroundColor3=barColor,BackgroundTransparency=0.78,BorderSizePixel=0,ZIndex=zIndex-1,Parent=cont})
+    Corner(6,halo)
+    for i=1,9 do New("Frame",{Position=UDim2.new(i/10,0,0,0),Size=UDim2.new(0,1,1,0),BackgroundColor3=Color3.fromRGB(10,4,22),BackgroundTransparency=0.45,BorderSizePixel=0,ZIndex=zIndex+3,Parent=trackBg}) end
+    local logLbl=New("TextLabel",{AnchorPoint=Vector2.new(0,0),Position=UDim2.new(0,0,0,36),Size=UDim2.new(1,0,0,14),BackgroundTransparency=1,Text="",TextColor3=CI.ACCENT3,TextTransparency=1,TextSize=9,Font=Enum.Font.Code,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=zIndex+2,Parent=cont})
+    local obj={cont=cont,fill=fill,halo=halo,statusLbl=statusLbl,pctLbl=pctLbl,logLbl=logLbl,trackBg=trackBg,fillGrad=fillGrad,_pct=0,_running=false}
+    function obj:show() Tween(statusLbl,T_QUART(0.3),{TextTransparency=0}):Play();Tween(pctLbl,T_QUART(0.3),{TextTransparency=0}):Play();Tween(logLbl,T_QUART(0.4),{TextTransparency=0.25}):Play() end
+    function obj:setRaw(pct) pct=math.clamp(pct,0,1);self._pct=pct;fill.Size=UDim2.new(pct,0,1,0);halo.Size=UDim2.new(pct,0,0,18);pctLbl.Text=math.floor(pct*100).."%"  end
+    function obj:tweenTo(pct,duration2,callback) pct=math.clamp(pct,0,1);local startPct=self._pct;local elapsed=0;duration2=duration2 or 0.4;task.spawn(function() while elapsed<duration2 do elapsed=elapsed+task.wait(0.016);local t2=math.min(elapsed/duration2,1);local et=1-(1-t2)^3;self:setRaw(startPct+(pct-startPct)*et) end;self:setRaw(pct);if callback then callback() end end) end
+    local logMessages={"> loading texture shaders...","> applying depth buffer...","> calibrating bloom filter...","> injecting lighting engine...","> finalizing render pipeline...","> PH LOUNCHER READY"}
+    function obj:runSequence(onComplete)
+        self._running=true;self:show()
+        local steps={{pct=0.08,dur=0.25,delay=0.1,log=logMessages[1],status="LOADING KORBLOX..."},{pct=0.22,dur=0.35,delay=0.2,log=logMessages[2],status="PENTIL..."},{pct=0.41,dur=0.4,delay=0.15,log=logMessages[3],status="RENDER PORPAN..."},{pct=0.63,dur=0.45,delay=0.18,log=logMessages[4],status="MEMEK..."},{pct=0.82,dur=0.4,delay=0.15,log=logMessages[5],status="RENDER KONTOL..."},{pct=1.00,dur=0.55,delay=0.2,log=logMessages[6],status="PH LOUNCHER ONLINE"}}
+        task.spawn(function() for idx,step in ipairs(steps) do task.wait(step.delay);statusLbl.Text=step.status;task.spawn(function() local gc="█▓▒░▄▀■□";for _=1,3 do local g="";for i=1,#step.status do g=g..(math.random()<0.35 and gc:sub(math.random(1,#gc),math.random(1,#gc)) or step.status:sub(i,i)) end;statusLbl.Text=g;task.wait(0.04) end;statusLbl.Text=step.status end);logLbl.Text=step.log;self:tweenTo(step.pct,step.dur);if step.pct>=1.0 then task.wait(step.dur*0.6);self._running=false;Tween(fill,T_SMOOTH(0.12),{BackgroundColor3=CI.WHITE}):Play();task.wait(0.13);local transDur=0.45;local elapsed3=0;while elapsed3<transDur do elapsed3=elapsed3+task.wait(0.016);local t3=math.min(elapsed3/transDur,1);local et3=1-(1-t3)^3;fillGrad.Color=ColorSequence.new(glow:Lerp(CI.GREEN,et3),barColor:Lerp(CI.GREEN,et3));fill.BackgroundColor3=barColor:Lerp(CI.GREEN,et3);halo.BackgroundColor3=barColor:Lerp(CI.GREEN,et3) end;fill.BackgroundColor3=CI.GREEN;halo.BackgroundColor3=CI.GREEN;fillGrad.Color=ColorSequence.new(CI.GREEN,CI.GREEN);fillGrad.Offset=Vector2.new(0,0);Tween(pctLbl,T_SMOOTH(0.4),{TextColor3=CI.GREEN}):Play();Tween(statusLbl,T_SMOOTH(0.4),{TextColor3=CI.GREEN}):Play();local barStroke2=trackBg:FindFirstChildOfClass("UIStroke");if barStroke2 then Tween(barStroke2,T_SMOOTH(0.45),{Color=CI.GREEN}):Play() end;task.wait(0.35);if onComplete then onComplete() end else task.wait(step.dur) end end end)
+        task.spawn(function() while self._running do task.wait(1.0+math.random(0,8)/10);if not self._running then break end;local sweepDur=0.6;local elapsed=0;while elapsed<sweepDur and self._running do elapsed=elapsed+task.wait(0.016);local t2=math.min(elapsed/sweepDur,1);local et2=t2<0.5 and (2*t2*t2) or (1-(-2*t2+2)^2/2);local pos=-0.5+et2*1.0;fillGrad.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,glow),ColorSequenceKeypoint.new(math.clamp(pos-0.12,0.01,0.99),barColor),ColorSequenceKeypoint.new(math.clamp(pos,0.01,0.99),CI.WHITE),ColorSequenceKeypoint.new(math.clamp(pos+0.12,0.01,0.99),barColor),ColorSequenceKeypoint.new(1,barColor)}) end;if fill and fill.Parent then fillGrad.Color=ColorSequence.new(glow,barColor) end end end)
+        local barStroke=trackBg:FindFirstChildOfClass("UIStroke");task.spawn(function() while self._running do if barStroke then Tween(barStroke,T_SMOOTH(0.9),{Color=glow,Thickness=1.0}):Play();task.wait(0.95);Tween(barStroke,T_SMOOTH(0.9),{Color=barColor,Thickness=0.5}):Play();task.wait(0.95) end end end)
+    end
+    function obj:hide(dur)
+        dur=dur or 0.45;self._running=false;Tween(statusLbl,T_IN(dur*0.5),{TextTransparency=1}):Play();Tween(pctLbl,T_IN(dur*0.5),{TextTransparency=1}):Play();Tween(logLbl,T_IN(dur*0.4),{TextTransparency=1}):Play()
+        task.delay(dur*0.1,function() if fill and fill.Parent then Tween(fill,TweenInfo.new(dur*0.8,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{Size=UDim2.new(0,0,1,0),BackgroundTransparency=0.4}):Play() end end)
+        task.delay(dur*0.15,function() if trackBg and trackBg.Parent then Tween(trackBg,TweenInfo.new(dur*0.85,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{BackgroundTransparency=1}):Play();local barStroke=trackBg:FindFirstChildOfClass("UIStroke");if barStroke then Tween(barStroke,TweenInfo.new(dur*0.7,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{Thickness=0,Transparency=1}):Play() end end end)
+        task.delay(dur*0.05,function() if halo and halo.Parent then Tween(halo,TweenInfo.new(dur*0.75,Enum.EasingStyle.Sine,Enum.EasingDirection.In),{BackgroundTransparency=1,Size=UDim2.new(0,0,0,18)}):Play() end end)
+    end
+    return obj
+end
+
+local function MakeTerminalText(cfg)
+    local zIndex=cfg.zIndex or 10;local cont=New("Frame",{AnchorPoint=cfg.anchorPoint or Vector2.new(0.5,0.5),Position=cfg.position,Size=cfg.size,BackgroundColor3=Color3.fromRGB(5,2,15),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=zIndex,Parent=cfg.parent})
+    Corner(8,cont);local contStroke=Stroke2(cfg.color or CI.ACCENT,0,cont);local topBar=New("Frame",{Size=UDim2.new(1,0,0,18),BackgroundColor3=cfg.color or CI.ACCENT,BackgroundTransparency=0.75,BorderSizePixel=0,ZIndex=zIndex+1,Parent=cont})
+    Corner(8,topBar);New("Frame",{Size=UDim2.new(1,0,0.5,0),Position=UDim2.new(0,0,0.5,0),BackgroundColor3=cfg.color or CI.ACCENT,BackgroundTransparency=0.75,BorderSizePixel=0,ZIndex=zIndex+1,Parent=topBar})
+    local dotColors={CI.RED,CI.ACCENT2,CI.GREEN};for i=1,3 do local dot=New("Frame",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0,6+i*12,0.5,0),Size=UDim2.new(0,7,0,7),BackgroundColor3=dotColors[i],BackgroundTransparency=0.2,BorderSizePixel=0,ZIndex=zIndex+2,Parent=topBar});Corner(4,dot) end
+    New("TextLabel",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.new(1,-60,1,0),BackgroundTransparency=1,Text="terminal@pentilhub:~",TextColor3=cfg.color or CI.ACCENT,TextTransparency=0.3,TextSize=9,Font=Enum.Font.Code,ZIndex=zIndex+2,Parent=topBar})
+    local prefix=New("TextLabel",{Position=UDim2.new(0,10,0,22),Size=UDim2.new(0,22,0,cfg.textSize or 14),BackgroundTransparency=1,Text="> ",TextColor3=cfg.color or CI.ACCENT,TextTransparency=1,TextSize=cfg.textSize or 14,Font=Enum.Font.Code,ZIndex=zIndex+2,Parent=cont})
+    local lbl=New("TextLabel",{Position=UDim2.new(0,30,0,22),Size=UDim2.new(1,-40,0,cfg.textSize or 14),BackgroundTransparency=1,Text="",TextColor3=cfg.color or CI.ACCENT,TextTransparency=1,TextSize=cfg.textSize or 14,Font=Enum.Font.Code,TextXAlignment=Enum.TextXAlignment.Left,ZIndex=zIndex+2,Parent=cont})
+    local cursor=New("Frame",{Position=UDim2.new(0,30,0,22),Size=UDim2.new(0,8,0,cfg.textSize or 14),BackgroundColor3=cfg.color or CI.ACCENT,BackgroundTransparency=0.2,BorderSizePixel=0,ZIndex=zIndex+3,Parent=cont})
+    local activeTweens={};local function PlayTween(obj2,info,props) local t2=TweenService:Create(obj2,info,props);table.insert(activeTweens,t2);t2:Play();return t2 end
+    local function CancelAllTweens() for _,t2 in ipairs(activeTweens) do pcall(function() t2:Cancel() end) end;activeTweens={} end
+    local obj={cont=cont,lbl=lbl,cursor=cursor,prefix=prefix,contStroke=contStroke,topBar=topBar,_shown=false,_typing=false,_dead=false}
+    function obj:typeIn(text,speed)
+        speed=speed or 0.05;self._typing=true;self._shown=true
+        if cont.BackgroundTransparency>0.5 then PlayTween(cont,T_SMOOTH(0.35),{BackgroundTransparency=0.76});PlayTween(contStroke,T_SMOOTH(0.3),{Thickness=0.9});task.wait(0.4) end
+        PlayTween(prefix,T_QUART(0.2),{TextTransparency=0});PlayTween(lbl,T_QUART(0.1),{TextTransparency=0});task.wait(0.15)
+        local blinking=true;task.spawn(function() while blinking and not self._dead do cursor.BackgroundTransparency=0.12;task.wait(0.38);cursor.BackgroundTransparency=1;task.wait(0.38) end;cursor.BackgroundTransparency=1 end)
+        lbl.Text="";for i=1,#text do if self._dead then break end;lbl.Text=text:sub(1,i);cursor.Position=UDim2.new(0,math.min(30+(i*(cfg.textSize or 14)*0.58),cont.AbsoluteSize.X-14),0,22);task.wait(speed) end
+        blinking=false;if self._dead then return end;cursor.BackgroundTransparency=0.12
+        task.spawn(function() while self._shown and not self._dead do PlayTween(contStroke,T_SMOOTH(1.2),{Color=CI.CYAN,Thickness=1.1});task.wait(1.25);if not self._shown or self._dead then break end;PlayTween(contStroke,T_SMOOTH(1.2),{Color=cfg.color or CI.ACCENT,Thickness=0.4});task.wait(1.25) end end)
+    end
+    function obj:hide(dur)
+        dur=dur or 0.55;self._shown=false;self._typing=false;self._dead=true;CancelAllTweens();cursor.BackgroundTransparency=1;contStroke.Thickness=0;local textLen=#lbl.Text;local fullText=lbl.Text;prefix.TextTransparency=1
+        task.spawn(function() if textLen>0 then for i=textLen,1,-1 do lbl.Text=fullText:sub(1,i);task.wait(0.022) end end;lbl.Text="";lbl.TextTransparency=1 end)
+        task.delay(textLen*0.022+0.04,function() if not(cont and cont.Parent) then return end;local p=cont.Position;TweenService:Create(cont,TweenInfo.new(dur*0.55,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{BackgroundTransparency=1,Position=UDim2.new(p.X.Scale,p.X.Offset,p.Y.Scale,p.Y.Offset-20)}):Play();task.delay(dur*0.56,function() if cont and cont.Parent then cont.Visible=false end end) end)
+    end
+    return obj
+end
+
+-- ================================================
+-- INTRO SEQUENCE
+-- ================================================
+local function showLauncherIntro(onDone)
+    local spinning=true;local pulsing=true;local orbiting=true;local alive=true
+    local shakeEng=ShakeEngine.new();local nullCam=NullCamera.new();shakeEng:Start()
+    local sg=New("ScreenGui",{Name="AkenoLauncherIntro",IgnoreGuiInset=true,DisplayOrder=999,Parent=PlayerGui})
+    local Bg=New("Frame",{Size=UDim2.fromScale(1,1),BackgroundColor3=Color3.fromRGB(4,2,12),BackgroundTransparency=1,BorderSizePixel=0,Parent=sg})
+    Tween(Bg,TweenInfo.new(0.45,Enum.EasingStyle.Sine),{BackgroundTransparency=0}):Play();task.wait(0.55)
+    task.spawn(function() task.wait(1.0);local glitchTypes={function() GlitchEngine.SliceGlitch(sg,0.5,0.07) end,function() GlitchEngine.StaticBurst(sg,0.6,0.06) end,function() GlitchEngine.PixelCorrupt(sg,0.4,0.08) end,function() GlitchEngine.ChromaticBleed(sg,0.45,0.10) end,function() GlitchEngine.DataCorrupt(sg,0.5,0.22) end,function() GlitchEngine.VignettePulse(sg,CI.ACCENT,0.4,0.2) end};local lastType=0;while alive do task.wait(math.random(9,24)/10);if not alive then break end;local pick;repeat pick=math.random(1,#glitchTypes) until pick~=lastType;lastType=pick;glitchTypes[pick]() end end)
+    local starCont=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(1.35,1.35),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=1,Parent=sg});nullCam:RegisterLayer(starCont,0.15)
+    local starColors={Color3.fromRGB(200,160,255),Color3.fromRGB(255,180,255),Color3.fromRGB(160,100,255),Color3.fromRGB(255,255,255),Color3.fromRGB(220,200,255),Color3.fromRGB(180,80,255),Color3.fromRGB(120,220,255)};local stars={}
+    for i=1,160 do local sz=math.random(1,4);local s=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(math.random(2,98)/100,0,math.random(2,98)/100,0),Size=UDim2.new(0,sz,0,sz),BackgroundColor3=starColors[math.random(1,#starColors)],BackgroundTransparency=0.5,BorderSizePixel=0,ZIndex=1,Parent=starCont});Corner(sz,s);stars[i]={obj=s,phase=math.random(0,628)/100,speed=math.random(4,18)/10} end
+    task.spawn(function() local t=0;while alive do t=t+0.04;for _,s in ipairs(stars) do if s.obj.Parent then s.obj.BackgroundTransparency=1-(0.15+math.abs(math.sin(t*s.speed+s.phase))*0.82) end end;task.wait(0.05) end end)
+    local nebCont=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(1.35,1.35),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=2,Parent=sg});nullCam:RegisterLayer(nebCont,0.35)
+    local nebColors={Color3.fromRGB(100,10,200),Color3.fromRGB(180,20,220),Color3.fromRGB(60,5,160),Color3.fromRGB(140,30,255),Color3.fromRGB(200,10,180),Color3.fromRGB(80,0,140),Color3.fromRGB(40,0,120)};local nebulae={}
+    for i=1,14 do local sz=math.random(70,220);local n=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(math.random(10,90)/100,0,math.random(10,90)/100,0),Size=UDim2.new(0,sz,0,sz),BackgroundColor3=nebColors[math.random(1,#nebColors)],BackgroundTransparency=0.83,BorderSizePixel=0,ZIndex=2,Parent=nebCont});Corner(sz/2,n);nebulae[i]={obj=n,bx=math.random(10,90)/100,by=math.random(10,90)/100,px=math.random(0,628)/100,py=math.random(0,628)/100,ax=math.random(2,5)/100,ay=math.random(2,5)/100,sp=math.random(2,7)/10} end
+    task.spawn(function() local t=0;while alive do t=t+0.016;for _,n in ipairs(nebulae) do if n.obj.Parent then n.obj.Position=UDim2.new(n.bx+math.sin(t*n.sp+n.px)*n.ax,0,n.by+math.cos(t*n.sp+n.py)*n.ay,0);n.obj.BackgroundTransparency=0.79+math.sin(t*n.sp*1.5+n.px)*0.1 end end;task.wait(0.03) end end)
+    local riseCont=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(1.25,1.25),BackgroundTransparency=1,ClipsDescendants=true,BorderSizePixel=0,ZIndex=3,Parent=sg});nullCam:RegisterLayer(riseCont,0.55)
+    local riseColors={Color3.fromRGB(160,60,255),Color3.fromRGB(220,40,255),Color3.fromRGB(255,100,255),Color3.fromRGB(120,20,220),Color3.fromRGB(200,80,255),Color3.fromRGB(80,200,255),Color3.fromRGB(255,160,100)}
+    local function SpawnRise() local sz=math.random(2,7);local xp=math.random(1,99)/100;local p=New("Frame",{AnchorPoint=Vector2.new(0.5,1),Position=UDim2.new(xp,0,1.02,0),Size=UDim2.new(0,sz,0,sz),BackgroundColor3=riseColors[math.random(1,#riseColors)],BackgroundTransparency=0.15,BorderSizePixel=0,ZIndex=3,Parent=riseCont});Corner(sz/2,p);local dur=math.random(25,75)/10;Tween(p,T_LIN(dur),{Position=UDim2.new(xp+math.random(-5,5)/100,0,-0.02,0),BackgroundTransparency=0.88}):Play();task.delay(dur,function() if p and p.Parent then p:Destroy() end end) end
+    for i=1,50 do task.delay(i*0.04,function() if alive then SpawnRise() end end) end;task.spawn(function() while alive do SpawnRise();task.wait(math.random(4,18)/100) end end)
+    local scanCont=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(1.25,1.25),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=4,Parent=sg});nullCam:RegisterLayer(scanCont,0.25)
+    local scanLines={};for i=1,4 do local sl=New("Frame",{Size=UDim2.new(1,0,0,1),Position=UDim2.new(0,0,math.random(0,25)/100,0),BackgroundColor3=({CI.ACCENT2,CI.CYAN,CI.ACCENT,CI.PINK})[i],BackgroundTransparency=0.8,BorderSizePixel=0,ZIndex=4,Parent=scanCont});scanLines[i]={obj=sl,speed=1.4+i*0.65} end
+    task.spawn(function() while alive do for _,sl in ipairs(scanLines) do if sl.obj.Parent then Tween(sl.obj,T_LIN(sl.speed),{Position=UDim2.new(0,0,1.01,0),BackgroundTransparency=0.93}):Play();task.wait(sl.speed+0.05);sl.obj.Position=UDim2.new(0,0,-0.01,0);sl.obj.BackgroundTransparency=0.8 end end;task.wait(0.01) end end)
+    local rayCol={CI.ACCENT,CI.ACCENT2,CI.ACCENT3,CI.CYAN};for i,co in ipairs({{0,0,45},{1,0,135},{0,1,315},{1,1,225}}) do local ray=New("Frame",{AnchorPoint=Vector2.new(co[1],co[2]),Position=UDim2.new(co[1],0,co[2],0),Size=UDim2.new(0,2,0.52,0),BackgroundColor3=rayCol[i],BackgroundTransparency=0.68,Rotation=co[3],BorderSizePixel=0,ZIndex=4,Parent=sg});task.spawn(function() while ray and ray.Parent do Tween(ray,T_SMOOTH(1.9+i*0.28),{BackgroundTransparency=0.9,Size=UDim2.new(0,1,0.42,0)}):Play();task.wait(2.0+i*0.28);Tween(ray,T_SMOOTH(1.9+i*0.28),{BackgroundTransparency=0.52,Size=UDim2.new(0,3,0.62,0)}):Play();task.wait(2.0+i*0.28) end end) end
+    local ringCont=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=5,Parent=sg});nullCam:RegisterLayer(ringCont,0.75)
+    local function MakeRing(sz,col,thick) local f=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.new(0,sz,0,sz),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=5,Parent=ringCont});Corner(sz/2,f);return f,Stroke2(col,thick,f) end
+    local R3,S3=MakeRing(0,Color3.fromRGB(120,20,200),0.8);S3.Transparency=1;Tween(R3,T_QUART(1.15),{Size=UDim2.new(0,440,0,440)}):Play();Tween(S3,T_SMOOTH(0.95),{Transparency=0.55}):Play()
+    local R2,S2=MakeRing(0,CI.ACCENT,1.4);S2.Transparency=1;Tween(R2,T_BACK(0.95),{Size=UDim2.new(0,330,0,330)}):Play();Tween(S2,T_SMOOTH(0.75),{Transparency=0}):Play();task.wait(0.2)
+    local R1,S1=MakeRing(0,CI.ACCENT2,2.0);S1.Transparency=1;Tween(R1,T_BACK(0.75),{Size=UDim2.new(0,220,0,220)}):Play();Tween(S1,T_SMOOTH(0.55),{Transparency=0}):Play()
+    local R4,S4=MakeRing(0,CI.CYAN,0.5);S4.Transparency=1;Tween(R4,T_LIN(1.8),{Size=UDim2.new(0,560,0,560)}):Play();Tween(S4,T_SMOOTH(1.5),{Transparency=0.7}):Play()
+    task.spawn(function() local a,b,c2=0,0,0;while spinning do a=a+1.4;b=b-0.4;c2=c2+0.18;if R1.Parent then R1.Rotation=a end;if R2.Parent then R2.Rotation=b end;if R4.Parent then R4.Rotation=c2 end;task.wait(0.03) end end)
+    task.spawn(function() while pulsing do Tween(S2,T_SMOOTH(1.3),{Thickness=2.2}):Play();task.wait(1.35);if not pulsing then break end;Tween(S2,T_SMOOTH(1.3),{Thickness=0.9}):Play();task.wait(1.35) end end)
+    task.spawn(function() while pulsing do Tween(S4,T_SMOOTH(2.0),{Transparency=0.45,Color=CI.ACCENT}):Play();task.wait(2.05);if not pulsing then break end;Tween(S4,T_SMOOTH(2.0),{Transparency=0.78,Color=CI.CYAN}):Play();task.wait(2.05) end end);task.wait(0.3)
+    local logoCont=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=6,Parent=sg});nullCam:RegisterLayer(logoCont,1.0)
+    local logoGlow=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.new(0,0,0,0),BackgroundColor3=CI.ACCENT,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=5,Parent=logoCont});Corner(160,logoGlow)
+    local logo=New("ImageLabel",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.new(0,0,0,0),BackgroundTransparency=1,Image="rbxassetid://84057217941098",ImageTransparency=1,ZIndex=6,Parent=logoCont});Instance.new("UIAspectRatioConstraint",logo).AspectRatio=1
+    Tween(logoGlow,T_BACK(0.6),{Size=UDim2.new(0,315,0,315),BackgroundTransparency=0.88}):Play();task.wait(0.1);Tween(logo,T_BACK(0.95),{Size=UDim2.new(0,290,0,290),ImageTransparency=0}):Play()
+    task.spawn(function() task.wait(0.9);while alive do Tween(logoGlow,T_SMOOTH(1.4),{BackgroundTransparency=0.82,BackgroundColor3=CI.ACCENT2}):Play();task.wait(1.45);if not alive then break end;Tween(logoGlow,T_SMOOTH(1.4),{BackgroundTransparency=0.92,BackgroundColor3=CI.ACCENT}):Play();task.wait(1.45) end end)
+    shakeEng:Add({amplitude=2.8,frequency=14,duration=1.8,decay=1.6,style="slam",rotAmp=0.8,zAmp=2.2});nullCam:Shake(48,1.1);FlashScreen(sg,Color3.fromRGB(160,40,255),0.38,0.4);GlitchEngine.Climax(sg,1.6);task.wait(1.0)
+    local sparkCont=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=7,Parent=sg});nullCam:RegisterLayer(sparkCont,0.85)
+    local sparkles={};local orbitRings={{count=12,dist=140,speed=1.1,ca=CI.ACCENT,cb=CI.ACCENT2,szMin=2,szMax=5},{count=14,dist=178,speed=-0.7,ca=CI.ACCENT2,cb=CI.CYAN,szMin=2,szMax=6},{count=12,dist=218,speed=0.45,ca=CI.ACCENT3,cb=CI.ACCENT,szMin=3,szMax=7},{count=10,dist=258,speed=-0.28,ca=CI.CYAN,cb=CI.PINK,szMin=2,szMax=4}}
+    for ri,ring in ipairs(orbitRings) do for i=1,ring.count do local angle=(i/ring.count)*math.pi*2;local cx=0.5+math.cos(angle)*ring.dist/sg.AbsoluteSize.X;local cy=0.5+math.sin(angle)*ring.dist/sg.AbsoluteSize.Y;local sz=math.random(ring.szMin,ring.szMax);local sp=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.new(cx,0,cy,0),Size=UDim2.new(0,sz,0,sz),BackgroundColor3=(i%2==0) and ring.ca or ring.cb,BackgroundTransparency=1,BorderSizePixel=0,ZIndex=7,Parent=sparkCont});Corner(sz/2,sp);sparkles[#sparkles+1]={obj=sp,phase=(i/ring.count)*math.pi*2,dist=ring.dist,speed=ring.speed,idx=i,twinkleSpeed=math.random(8,20)/10,twinklePhase=math.random(0,628)/100};task.delay(i*0.035+(ri-1)*0.18,function() if sp.Parent then Tween(sp,T_BACK(0.35),{BackgroundTransparency=0.05}):Play() end end) end end
+    task.spawn(function() local t=0;while orbiting do t=t+0.025;for _,s in ipairs(sparkles) do if s.obj.Parent then local angle=s.phase+t*s.speed;local dist=s.dist+math.sin(t*2.2+s.idx)*11;local absSz=sg.AbsoluteSize;s.obj.Position=UDim2.new(0.5+math.cos(angle)*dist/absSz.X,0,0.5+math.sin(angle)*dist/absSz.Y,0);local sc=(1.5+math.abs(math.sin(t*s.twinkleSpeed+s.twinklePhase)))*3;s.obj.Size=UDim2.new(0,sc,0,sc);s.obj.BackgroundTransparency=0.05+math.abs(math.sin(t*s.twinkleSpeed*0.7+s.twinklePhase+1))*0.6 end end;task.wait(0.03) end end)
+    local textCont=New("Frame",{AnchorPoint=Vector2.new(0.5,0.5),Position=UDim2.fromScale(0.5,0.5),Size=UDim2.fromScale(1,1),BackgroundTransparency=1,BorderSizePixel=0,ZIndex=8,Parent=sg});nullCam:RegisterLayer(textCont,1.3)
+    local lineL=New("Frame",{AnchorPoint=Vector2.new(1,0.5),Position=UDim2.new(0.5,-16,0.5,150),Size=UDim2.new(0,0,0,1.5),BackgroundColor3=CI.ACCENT,BackgroundTransparency=0.25,BorderSizePixel=0,ZIndex=8,Parent=textCont})
+    local lineR=New("Frame",{AnchorPoint=Vector2.new(0,0.5),Position=UDim2.new(0.5,16,0.5,150),Size=UDim2.new(0,0,0,1.5),BackgroundColor3=CI.ACCENT2,BackgroundTransparency=0.25,BorderSizePixel=0,ZIndex=8,Parent=textCont})
+    local loadBar=MakeLoadingBar({parent=textCont,anchorPoint=Vector2.new(0.5,0.5),position=UDim2.new(0.5,0,0.5,165),size=UDim2.new(0,330,0,54),zIndex=9,color=CI.ACCENT2,glowColor=CI.ACCENT})
+    local underline=New("Frame",{AnchorPoint=Vector2.new(0.5,0),Position=UDim2.new(0.5,0,0.5,224),Size=UDim2.new(0,0,0,2),BackgroundColor3=CI.ACCENT,BackgroundTransparency=0,BorderSizePixel=0,ZIndex=9,Parent=textCont});Corner(2,underline)
+    local ug=Instance.new("UIGradient");ug.Color=ColorSequence.new(CI.ACCENT,CI.ACCENT2);ug.Rotation=0;ug.Parent=underline
+    local brand2=MakeTerminalText({parent=textCont,anchorPoint=Vector2.new(0.5,0),position=UDim2.new(0.5,0,0.5,232),size=UDim2.new(0,330,0,56),textSize=15,font=Enum.Font.Code,color=CI.ACCENT2,zIndex=8})
+    local verLabel=New("TextLabel",{AnchorPoint=Vector2.new(0.5,0),Position=UDim2.new(0.5,0,0.5,296),Size=UDim2.new(0,300,0,18),BackgroundTransparency=1,Text="[v1.0  ::  AKENO LAUNCHER  ::  ONLINE]",TextColor3=CI.ACCENT3,TextTransparency=1,TextSize=10,Font=Enum.Font.Code,ZIndex=8,Parent=textCont})
+    Tween(lineL,T_EXPO(0.55),{Size=UDim2.new(0,115,0,1.5)}):Play();Tween(lineR,T_EXPO(0.55),{Size=UDim2.new(0,115,0,1.5)}):Play();task.wait(0.12)
+    shakeEng:Add({amplitude=2.2,frequency=20,duration=1.1,decay=3.0,style="slam",rotAmp=0.6,zAmp=1.8});nullCam:Shake(36,0.9);FlashScreen(sg,Color3.fromRGB(220,40,255),0.3,0.38);GlitchEngine.Sequence(sg,1.3,0.6);task.wait(0.15)
+    task.spawn(function() brand2:typeIn("MADE BY AKENO x UZI",0.055) end);task.wait(0.12)
+    loadBar:runSequence(function()
+        task.wait(0.25);Tween(underline,T_BACK(0.5),{Size=UDim2.new(0,312,0,2)}):Play();task.wait(0.14)
+        shakeEng:Add({amplitude=0.18,frequency=9,duration=1.2,decay=1.4,style="wave",rotAmp=0.06})
+        task.spawn(function() task.wait(0.5);local gc="█▓▒░▄▀■□▪◆○●01ABCDEF";local orig="[v1.0  ::  AKENO LAUNCHER  ::  ONLINE]";for iter=1,7 do local g="";local progress=iter/7;for i=1,#orig do g=g..(math.random()<(1-progress)*0.5 and gc:sub(math.random(1,#gc),math.random(1,#gc)) or orig:sub(i,i)) end;verLabel.Text=g;Tween(verLabel,TweenInfo.new(0.04),{TextTransparency=0.25+progress*0.1}):Play();task.wait(0.06+iter*0.01) end;verLabel.Text=orig;Tween(verLabel,T_SMOOTH(0.4),{TextTransparency=0}):Play() end)
+    end)
+    task.spawn(function() task.wait(0.9);local burstTypes={function() shakeEng:Add({amplitude=0.95,frequency=28,duration=0.5,decay=4.5,style="rumble",rotAmp=0.35,zAmp=0.8});nullCam:Shake(26,0.55);GlitchEngine.ChromaticBleed(sg,0.9,0.12);GlitchEngine.SliceGlitch(sg,0.8,0.08) end,function() shakeEng:Add({amplitude=0.75,frequency=18,duration=0.6,decay=3.0,style="pulse",rotAmp=0.28,zAmp=0.6});nullCam:Shake(20,0.45);GlitchEngine.DataCorrupt(sg,0.8,0.28);GlitchEngine.PixelCorrupt(sg,0.7,0.09) end,function() shakeEng:Add({amplitude=0.85,frequency=24,duration=0.45,decay=5.5,style="slam",rotAmp=0.32,zAmp=0.7});nullCam:Shake(22,0.5);GlitchEngine.ScanlineBurst(sg,0.5,0.12);GlitchEngine.VignettePulse(sg,CI.ACCENT2,0.7,0.22) end,function() shakeEng:Add({amplitude=0.7,frequency=16,duration=0.5,decay=3.5,style="wave",rotAmp=0.25,zAmp=0.5});nullCam:Shake(18,0.4);GlitchEngine.WarpDistort(sg,0.7,0.2);GlitchEngine.StaticBurst(sg,0.8,0.07) end};local lastBurst=0;for _=1,5 do task.wait(math.random(6,13)/10);if not alive then break end;local pick;repeat pick=math.random(1,#burstTypes) until pick~=lastBurst;lastBurst=pick;burstTypes[pick]() end end)
+    local mainConn;mainConn=RunService.RenderStepped:Connect(function(dt) if not sg or not sg.Parent then pcall(function() mainConn:Disconnect() end);return end;nullCam:Update(dt) end);task.wait(5.0)
+    alive=false;pulsing=false;pcall(function() mainConn:Disconnect() end)
+    shakeEng:Add({amplitude=3.8,frequency=16,duration=1.4,decay=1.4,style="slam",rotAmp=1.1,zAmp=3.0});nullCam:Shake(65,1.2);FlashScreen(sg,Color3.fromRGB(255,100,255),0.55,0.45);GlitchEngine.Climax(sg,2.2);task.wait(0.4)
+    Tween(verLabel,TweenInfo.new(0.3,Enum.EasingStyle.Sine,Enum.EasingDirection.In),{TextTransparency=1}):Play();brand2:hide(0.75);task.wait(0.18)
+    Tween(underline,TweenInfo.new(0.32,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,2)}):Play();task.wait(0.08)
+    Tween(lineL,TweenInfo.new(0.3,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,1.5)}):Play();Tween(lineR,TweenInfo.new(0.3,Enum.EasingStyle.Quart,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,1.5)}):Play()
+    loadBar:hide(0.42);task.wait(0.28);Tween(logoGlow,TweenInfo.new(0.45,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0),BackgroundTransparency=1}):Play()
+    for _,cont2 in ipairs({starCont,nebCont,riseCont,scanCont,ringCont,logoCont,sparkCont,textCont}) do if cont2 and cont2.Parent then Tween(cont2,TweenInfo.new(0.55,Enum.EasingStyle.Sine,Enum.EasingDirection.In),{BackgroundTransparency=1}):Play() end end
+    for i,s in ipairs(sparkles) do if s.obj and s.obj.Parent then task.delay((i-1)*0.010,function() if s.obj and s.obj.Parent then Tween(s.obj,TweenInfo.new(0.45,Enum.EasingStyle.Back,Enum.EasingDirection.In),{BackgroundTransparency=1,Position=UDim2.fromScale(0.5,0.5),Size=UDim2.new(0,1,0,1)}):Play() end end) end end
+    Tween(logo,TweenInfo.new(0.6,Enum.EasingStyle.Back,Enum.EasingDirection.In),{ImageTransparency=1,Size=UDim2.new(0,0,0,0)}):Play();task.wait(0.24)
+    Tween(S1,T_IN(0.4),{Transparency=1}):Play();Tween(R1,TweenInfo.new(0.4,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play();task.wait(0.1)
+    Tween(S2,T_IN(0.45),{Transparency=1}):Play();Tween(R2,TweenInfo.new(0.45,Enum.EasingStyle.Back,Enum.EasingDirection.In),{Size=UDim2.new(0,0,0,0)}):Play();task.wait(0.1)
+    Tween(S3,T_IN(0.5),{Transparency=1}):Play();Tween(R3,T_IN(0.5),{Size=UDim2.new(0,0,0,0)}):Play();task.wait(0.08)
+    Tween(S4,T_IN(0.55),{Transparency=1}):Play();Tween(R4,T_IN(0.55),{Size=UDim2.new(0,0,0,0)}):Play();task.wait(0.5)
+    spinning=false;orbiting=false;shakeEng:Stop();Tween(Bg,TweenInfo.new(0.5,Enum.EasingStyle.Sine,Enum.EasingDirection.In),{BackgroundTransparency=1}):Play();task.wait(0.6);pcall(function() sg:Destroy() end)
+    if onDone then onDone() end
+end
+
+-- ================================================
+-- LAUNCHER MENU
+-- ================================================
+local showLauncher
+local loadSwapper
+local loadRTX
+local loadKorblox
+
+showLauncher = function()
+    local old = PlayerGui:FindFirstChild("AkenoLauncherGui"); if old then old:Destroy() end
+    local sg = Instance.new("ScreenGui")
+    sg.Name="AkenoLauncherGui"; sg.ResetOnSpawn=false; sg.IgnoreGuiInset=true
+    sg.DisplayOrder=50; sg.ZIndexBehavior=Enum.ZIndexBehavior.Sibling; sg.Parent=PlayerGui
+
+    local function findGui(name)
+        local g = PlayerGui:FindFirstChild(name)
+        if not g then pcall(function() g = gethui():FindFirstChild(name) end) end
+        return g
+    end
+
+    local W, H = 430, 398
+    local main = MkFrame(sg, UDim2.new(0,W,0,0), UDim2.new(0.5,-W/2,0.5,-H/2), THEME.bg)
+    main.ClipsDescendants = true; MkCorner(16, main)
+    MkFrame(main, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), THEME.violet, 0.94)
+    MkOrbBg(main); MkScanline(main)
+    local titleBar, _ = MkTitleBar(main, 52, "PENTIL HUB LAUNCHER", "pilih script untuk dijalankan", nil)
+    MkCloseBtn(titleBar, function() sg:Destroy() end)
+    MkDraggable(titleBar, main)
+    MkDivider(main, 52)
+
+    local scripts = {
+        {
+            name="Evade Swapper", desc="Ganti emote & kosmetik di Evade",
+            icon="⇄", tag="EVADE", color=Color3.fromRGB(80,120,255),
+            guiName="EvadeSwapperFull",
+            loader=function() loadSwapper() end,
+            stopper=function()
+                local g = PlayerGui:FindFirstChild("EvadeSwapperFull")
+                if not g then pcall(function() g = gethui():FindFirstChild("EvadeSwapperFull") end) end
+                if g then g:Destroy() end
+            end,
+        },
+        {
+            name="RTX Graphics", desc="Grafis RTX realistis + kontrol DOF",
+            icon="◈", tag="GRAPHICS", color=THEME.magenta,
+            guiName="UnifiedControlUI",
+            loader=function() loadRTX() end,
+            stopper=function()
+                local g=PlayerGui:FindFirstChild("UnifiedControlUI"); if g then g:Destroy() end
+            end,
+        },
+        {
+            name="Visual Korblox", desc="Korblox + Headless + Stretch Y",
+            icon="⬡", tag="VISUAL", color=THEME.violet,
+            guiName="EliteKorbloxHybrid",
+            loader=function() loadKorblox() end,
+            stopper=function()
+                local g=PlayerGui:FindFirstChild("EliteKorbloxHybrid"); if g then g:Destroy() end
+            end,
+        },
+    }
+
+    for i, info in ipairs(scripts) do
+        local yOff = 60 + (i-1)*104
+        local card = MkFrame(main, UDim2.new(1,-32,0,90), UDim2.new(0,16,0,yOff), THEME.bg2)
+        MkCorner(12, card)
+        local cardStroke = MkStroke(info.color, 1, card); cardStroke.Transparency = 0.65
+        local cardGrad = MkFrame(card, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), info.color, 0.93); MkCorner(12, cardGrad)
+        local strip = MkFrame(card, UDim2.new(0,3,0.65,0), UDim2.new(0,0,0.175,0), info.color); MkCorner(2, strip)
+        local iconCircle = MkFrame(card, UDim2.new(0,46,0,46), UDim2.new(0,14,0.5,-23), info.color, 0.80); MkCorner(12, iconCircle)
+        local icStroke = MkStroke(info.color, 1, iconCircle); icStroke.Transparency = 0.45
+        MkLabel(iconCircle, info.icon, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), info.color, 22, true, Enum.TextXAlignment.Center)
+        local tagBadge = MkFrame(card, UDim2.new(0,56,0,16), UDim2.new(0,70,0,14), info.color, 0.80); MkCorner(5, tagBadge)
+        MkLabel(tagBadge, info.tag, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), info.color, 8, true, Enum.TextXAlignment.Center)
+        MkLabel(card, info.name, UDim2.new(1,-180,0,20), UDim2.new(0,70,0,32), THEME.text, 14, true)
+        local descLbl = MkLabel(card, info.desc, UDim2.new(1,-180,0,22), UDim2.new(0,70,0,55), THEME.dim, 9, false)
+        descLbl.TextWrapped = true
+
+        local statusBadge = MkFrame(card, UDim2.new(0,52,0,16), UDim2.new(1,-56,1,-20), THEME.bg3, 0)
+        MkCorner(5, statusBadge); MkStroke(THEME.muted, 0.5, statusBadge)
+        local statusDot = MkFrame(statusBadge, UDim2.new(0,6,0,6), UDim2.new(0,5,0.5,-3), THEME.red)
+        MkCorner(3, statusDot)
+        local statusLbl = MkLabel(statusBadge, "OFF", UDim2.new(1,-16,1,0), UDim2.new(0,14,0,0), THEME.dim, 8, true)
+
+        local btnFrame = MkFrame(card, UDim2.new(0,82,0,34), UDim2.new(1,-100,0.5,-17), info.color, 0.2); MkCorner(9, btnFrame)
+        local btnStroke = MkStroke(info.color, 1, btnFrame); btnStroke.Transparency = 0.35
+        local btnShine = MkFrame(btnFrame, UDim2.new(1,0,0.45,0), UDim2.new(0,0,0,0), THEME.white, 0.91); MkCorner(9, btnShine)
+        local runBtn = Instance.new("TextButton", btnFrame)
+        runBtn.Size=UDim2.fromScale(1,1); runBtn.BackgroundTransparency=1
+        runBtn.Text="▶  RUN"; runBtn.TextColor3=THEME.white; runBtn.TextSize=10; runBtn.Font=Enum.Font.GothamBold; runBtn.ZIndex=8
+
+        local function refreshStatus()
+            local isActive = findGui(info.guiName) ~= nil
+            if isActive then
+                statusDot.BackgroundColor3 = THEME.green; statusLbl.Text = "ON"; statusLbl.TextColor3 = THEME.green
+                statusBadge.BackgroundColor3 = THEME.bg3
+                btnFrame.BackgroundColor3 = THEME.red; btnFrame.BackgroundTransparency = 0.1
+                runBtn.Text = "■  STOP"
+                TW(cardStroke,{Color=THEME.green,Transparency=0.3},0.3)
+                TW(cardGrad,{BackgroundColor3=THEME.green,BackgroundTransparency=0.90},0.3)
+                TW(strip,{BackgroundColor3=THEME.green},0.3)
+            else
+                statusDot.BackgroundColor3 = THEME.red; statusLbl.Text = "OFF"; statusLbl.TextColor3 = THEME.dim
+                statusBadge.BackgroundColor3 = THEME.bg3
+                btnFrame.BackgroundColor3 = info.color; btnFrame.BackgroundTransparency = 0.2
+                runBtn.Text = "▶  RUN"
+                TW(cardStroke,{Color=info.color,Transparency=0.65},0.3)
+                TW(cardGrad,{BackgroundColor3=info.color,BackgroundTransparency=0.93},0.3)
+                TW(strip,{BackgroundColor3=info.color},0.3)
+            end
+        end
+
+        task.spawn(function()
+            while main and main.Parent do refreshStatus(); task.wait(0.5) end
+        end)
+
+        runBtn.MouseEnter:Connect(function() TW(btnFrame,{BackgroundTransparency=0},0.15) end)
+        runBtn.MouseLeave:Connect(function()
+            local isActive = findGui(info.guiName) ~= nil
+            TW(btnFrame,{BackgroundTransparency= isActive and 0.1 or 0.2},0.15)
+        end)
+        runBtn.MouseButton1Down:Connect(function() TW(btnFrame,{Size=UDim2.new(0,76,0,30),Position=UDim2.new(1,-97,0.5,-15)},0.07) end)
+        runBtn.MouseButton1Up:Connect(function() TW(btnFrame,{Size=UDim2.new(0,82,0,34),Position=UDim2.new(1,-100,0.5,-17)},0.14,Enum.EasingStyle.Back) end)
+        runBtn.MouseButton1Click:Connect(function()
+            TW(btnStroke,{Color=THEME.white,Transparency=0},0.06); task.wait(0.1)
+            TW(btnStroke,{Color=info.color,Transparency=0.35},0.2); task.wait(0.05)
+            local isActive = findGui(info.guiName) ~= nil
+            if isActive then info.stopper() else info.loader() end
+            task.wait(0.1); refreshStatus()
+        end)
+
+        card.BackgroundTransparency=1; cardGrad.BackgroundTransparency=1
+        task.delay(i*0.07, function()
+            if card and card.Parent then TW(card,{BackgroundTransparency=0},0.3); TW(cardGrad,{BackgroundTransparency=0.93},0.3) end
+        end)
+    end
+
+    MkFooter(main, H, "PENTIL HUB  |  Free Access")
+    main.BackgroundTransparency = 1
+    TweenService:Create(main, TweenInfo.new(0.55,Enum.EasingStyle.Back,Enum.EasingDirection.Out), {Size=UDim2.new(0,W,0,H),BackgroundTransparency=0}):Play()
+end
+
+-- ================================================
+-- SCRIPT 1: EVADE SWAPPER
+-- ================================================
+loadSwapper = function()
+    local RS = game:GetService("ReplicatedStorage")
+    local function waitForFolders()
+        local items=RS:WaitForChild("Items",15); if not items then return nil,nil end
+        return items:WaitForChild("Emotes",10), items:WaitForChild("Cosmetics",10)
+    end
+    waitForFolders()
+    local EMOTE_LIST= {"APose","Addendum","Aerobics","AngelicWings","AprilShower","AuspiciousWell","AvariceLounge","BeachChairLounge","Beg","Bhop","BobointheBox","BoldMarch","Boneless","BoogieDown","Breakdown","BringItAround","Broom","Bumblebee","BumperKart","Caffeinated","California","CampfireDoze","Caramelldansen","Carlton","CasualSurfing","CatDance","CatParty","Catdown","Catjam","ChristmasBoogie","Clap","ClassicDance","ClassicJeep","ClassicStride","ClubDance","CompanyMan","Conga","CozyChair","Crabby","CrouchDance","CuerdasDelAlma","CyberBroom","DeadBoneStride","Distraction","DogParty","DreamyCloud","DuckyMarch","DynastyDrumming","Epicaricacy","Facepalm","FastFoodDelight","Fazbore","FireworkBlast","FlashingLights","Flexing","FlyingFish","FlyingSleigh","Freestyle","FreshFlop","FrightFunk","Frolic","FrostDrake","Gangnam","GhastlyGrimoire","GhoulishGalleon","Gmod","GoldRitual","GoofyStride","GraveRider","Griddy","Gyrating","HarpRecital","HeadlessBaller","HeadlessHorseman","Heaventaker","Hired","HoveringCrystal","IceFishing","Infectious","IrishJig","Kickback","LDance","LemonadeStand","LineDance","LittleJiggy","LunarParty","M3GANDance","Macarena","ManyFans","MaracaTime","MarchShowcase","Marching","MariachiBand","Mashle","Moonwalk","Nizmoo","Nostalgia","Nutcracker","OiiaOiia","PBJT","ParkerPride","PawsClaws","PonPon","PoolTime","Popipopi","PotionMash","PumpItUp","RainingTacos","Rambunctious","Reanimated","Robot","RobotM3GAN","RockefellerStreet","Rocket","RockinStride","RockingHorse","RowBoat","RudolphMount","RushinAround","RussianDance","SantaMech","ScorchedEarth","SeeTinh","SerenePerch","SeriousMarch","ShubaDance","Sit","SkateboardStroll","SkiSpree","SledDrifting","Sleep","Sleepybara","Smile","Smug","SnowAngel","SnowmanConstruction","SnowmobileCruise","SolarBike","SolarConqueror","SolarSlayer","SpiritedAway","SpookyTime","StarPower","Stride","SummerDays","SwagWalk","TPose","Tank","TexasStyle","Thriller","TouchGrass","ToyTrainRide","TurkeyJockey","TurtleHobble","Twist","ValentineComputer","WerewolfHowl","Wess","WindUpPose","WindupDance","WinterMelody","WinterRide","Writhing","Xylobone","ZenSerenity","ZombieStride"}
+    local COSMETIC_LIST= {"2023Celebration", "214Vision", "2AnniversaryHat", "Absorption", "AbyssalBarrier", "AbyssalEssence", "AbyssalEyes", "AcornHealingGrenade", "AcornLantern", "Adoration", "AffectionateLantern", "AlchemistBelt", "AlienSensor", "AlphaTester", "AltarOfTheLeviathan", "AmberAura", "AmethystAura", "AmethystAurora", "AmethystEnergy", "AmethystRadiance", "AmethystStaff", "AnchorSensor", "AncientCompass", "AngelStatue", "Angelic", "AngelicRedemption", "AnimalAura", "AnniversaryBarrier", "AnniversaryLandmine", "AquamarineFlask", "ArchangelWings", "ArtPaletteDecoy", "AstralNebula", "AtomicHeart", "AuroraBorealis", "AuroranBunnyEars", "AuroranStag", "AuroranTophat", "AustralisNebula", "AutumnBarrier", "AutumnLeaves", "AutumnLeavesJumpPad", "AvarianStaff", "AviatorCap", "AviatorGoggles", "AxolotlLantern", "AzureMaelstrom", "AzureMistWatcher", "AzureWall", "BCVision", "BPM5000", "BackCrank", "BackGuitar", "BackMenorah", "BackpackGift", "Baghead", "BambooDrink", "BananaPhone", "BananaSplitPad", "BananaSuit", "BarbedWireFence", "BarrierOfCatastrophe", "BatAttack", "BatGrapple", "BatVision", "BatwingBasher", "BazookaGrapple", "BeachHutBarrier", "BeachTowelSpeedpad", "BeachballBomb", "BearTrap", "BellFlashlight", "BellFlowerFloodlight", "BerryMine", "BinaryBeams", "BionicRejuvination", "BlackCape", "BlastPack", "BlazingCandle", "BlizzardyStorm", "BloodMoon", "BloodyGlass", "BlossomBarrier", "BloxxerRadar", "BloxyCola", "BlueAbduction", "BlueCape", "BlueFadedCape", "BlueFloodlight", "BlueHallowedFace", "BlueNeonShades", "BlueRadar", "BlueUFOAbduction", "BlueWindbreaker", "BluefirePortal", "Bobo", "BoboBuddyLantern", "BoboFriend", "BoboJardFloodlight", "BoboJumpPad", "BoboLifeguardSensor", "BoboPopsicle", "BoboSnowmanPal", "BoboTurtleSensor", "BoboVoodooDoll", "BoboVortex", "BoltSkaters", "BombMine", "BorealisAurora", "BorealisNebula", "BoxedBobo", "BoxedElectricizer", "BoxedSlinger", "BoxedVulcan", "BrainLantern", "BrassFloodlight", "BreadSensor", "BrickBarrier", "BridgeSpeedPad", "BronzeTeleporter", "Bubbly", "BunnyHoleTeleporter", "BunnyJard", "BunnyLandmine", "BurgerCatJumpPad", "BurningAce", "ButterflyAzure", "ButterflyCrimson", "ButterflyEclipse", "ButterflyGrapple", "ButterflyOrchid", "ByteFracture", "CCHaze", "CacklingMoon", "CagedHeartSensor", "CakeFloodlight", "CakeJumpPad", "CalmingMask", "CandelierLight", "CandleGrapple", "CandleLamp", "Candlehead", "CandyCaneAura", "CandyCaneBarrier", "CandyCaneShotgun", "CandyConfetti", "CandyCrown", "CandyFlintlock", "Candynado", "CaneDaggers", "CapybaraLandmine", "CapybaraMine", "CarrotBunnyEars", "CarrotGrapple", "CarrotJuice", "CarrotNose", "CarvedPumpkinHead", "CastleGate", "CatBoboSuit", "CatCampfire", "CatLantern", "CatMorphLantern", "CatOvenLight", "CatPostGrapple", "CatRadiance", "CatSpeedPad", "CatTimer", "CataclysmicPortal", "CatchTheRainbow", "CauldronOfGreed", "CauldronStewTeleporter", "Cauldronhead", "CelestialBarrier", "CelestialEssence", "CelestialJumpPad", "CelestialLantern", "CelestialLight", "CelestialSpeedPad", "CelestialStars", "CelestialTimer", "CerealDrink", "Chained", "ChainedCoffin", "Chainsaw", "ChaoticRadiance", "CharmLantern", "CharmingHearts", "CherishingBarrier", "ChickySensor", "ChillJard", "ChimneyStack", "ChineseLandmine", "ChocolateBomb", "ChocolateBunnyLantern", "ChristmasBellsLantern", "ChromaticAura", "CircleOfRoses", "CirclingBeams", "CirclingCatJard", "CirclingCatPufferfish", "CirclingEclipseCola", "CircusBarrier", "ClapboardTimer", "Claymore", "CloverBaton", "CloverChalice", "CloverCommunicator", "CloverCompass", "CloverEssence", "CloverGrapple", "CloverJumpPad", "CloverMine", "ClownButcher", "CobwebTrap", "CoconutDrink", "CoffinJumpPad", "CoinEyes", "ColaCooler", "CollapsingSingularity", "ColossalFlashes", "Combustor", "ConchShellDrink", "Conductor", "CoolEvadeSurfboard", "CoolHawaiianFlowers", "CopyClipboard", "CoralBarrier", "CoralTimer", "CosmicHalo", "CosmicVortex", "CozyScarf", "CrabLandmine", "CranberryCola", "CrimsonMender", "CrimsonMistWatcher", "CupidBow", "CupidMirage", "CupidWand", "CupidsArrow", "CursedEye", "CursedFlashlight", "CursedHorns", "CursedKrampus", "CyclopsNightVision", "DarkSensei", "DarkStar", "DarkTendrils", "DarkestKnight", "DaveTheBrickbattler", "DeadmansDemise", "DeathsBeverage", "DecoratedGate", "DeepseaAngler", "DeepseaFlashlight", "Default", "DefectRebel", "DemonHelmet", "DemonHorns", "DemonIris", "DemonSword", "DemonWings", "DemonicAcidicWings", "DemonicEclipseWings", "DemonicInfernalWings", "DestroyerOfWorlds", "DevilsContractDecoy", "DigitalBeeFriends", "DiscoMania", "DiscoReviveGrenade", "DiverHelmLantern", "DizzyStars", "DogBoneBreacher", "DoggoAura", "DoggoJumpPad", "DoggoSpeedpad", "DoghouseLantern", "DogtoyTrap", "DonationVictorian", "DoomedspireFloodlight", "DoomspireFloodlight", "DoricLight", "DraconicBreacher", "DraconicGrapple", "DraconicLight", "DragonSkull", "DragonSpeedPad", "DropWall", "DruidFlashlight", "DruidStaffLight", "DualBoneSwords", "DualCandyCanes", "DualEtherealSwords", "DuckyLandmine", "DuometricAura", "DystopianBarrier", "DystopianFloodlight", "EasterBarrier", "EclipseBarrier", "EclipseBreacher", "EclipseButterflies", "EclipseCrown", "EclipseElixir", "EclipseGrapple", "EclipseJumpPad", "EclipseLandmine", "EclipseLantern", "EclipseLove", "EclipseNova", "EclipseSmokeGrenade", "EclipseSpeedpad", "EclipseSwordLight", "EclipseTeleporter", "EctoplasmicStar", "EggToast", "EggToyRadar", "Eggnog", "Electrified", "ElectrifyingGuitar", "ElfFlashlight", "EliteHelmet", "EmeraldAura", "EmeraldLightPost", "EncapsulatedBarbedWires", "EnergizedPurple", "EnergizedRed", "EnergySword", "EntropyFlashlight", "Epsilon", "EruptingVolcano", "EscapeHatch", "EternalAffection", "EtherealSaucer", "Euphoria", "EvilToyDuck", "ExoHelmet", "ExplosiveKitten", "EyeCorruption", "EyeOfHorus", "FallingStar", "FantasticalBarrier", "FederationCrown", "FestiveAntlers", "FestiveHeadband", "FestiveKittySensor", "FestiveThermos", "FieryCandle", "FireHorns", "FirebrandGateway", "FireplaceBarrier", "FireworkLauncher", "FireworkLight", "FireworkPack", "FishingHookGrapple", "FishingPondTeleporter", "FlameWreath", "Flare", "FloralGrapple", "FlowerBeacon", "FlowerOfLight", "FloweringPetals", "FortuneScroll", "FourCloverPin", "FourLeafLantern", "Frankenstein", "FrigidCrown", "FrigidPerception", "FrogJumpPad", "FrogSensor", "FrostFlame", "FrostySnowman", "FrozenBoboSensor", "FrozenSwordLight", "FungalOvergrowth", "FusionCoilLight", "FuturisticBarrier", "FuturisticFloodlight", "FuturisticLandmine", "FuturisticSensor", "FuturisticSpeedPad", "FuturisticTeleporter", "GalacticSoldier", "GalfDecoy", "GalfRadio", "GemstoneLantern", "GeometricAura", "Ghosdeeri", "GhostAbduction", "GhostCatcher", "GhostFriend", "GhostRadar", "GiftBomb", "GiftHat", "GiftPair", "GiftSack", "GiftSled", "GiftStack", "GiftsackTeleporter", "GildedJetpack", "GildedLantern", "GildedStag", "GildedValkyrie", "GingerbreadBarrier", "GingerbreadBoboLantern", "GingerbreadGuards", "GingerbreadLantern", "GingerbreadPad", "GlacialEntrails", "GlacialOutburst", "GlaciusSet", "GleamingConstellation", "GleamingTreasureChest", "Glow", "GlowSolid", "GlowingHaze", "GlowingTree", "Glyph", "GoldBarrier", "GoldRadar", "GoldSpeedPad", "GoldTeleporter", "GoldTicket", "GraduationBear", "Gravesite", "GreenAbduction", "GreenBarrier", "GreenFadedCape", "GreenFloodlight", "GreenGift", "GreenHallowedFace", "GrillBeacon", "GrinchMask", "Grunt", "GubbyLantern", "GuiltySpark", "GunterSensor", "HQSensor", "Haha", "HalleysComet", "HallowedSpecters", "HandheldCandle", "HangingMistletoe", "HannukahTimer", "HappyFloodlight", "HappyHomeLantern", "HardlightGate", "HarpBarrier", "HarpRadar", "HauntedIridescence", "Headless", "HeadlessHorsemanHeadtaker", "Headset", "HealingCupcake", "HealingHalo", "HealingWaterBalloon", "HealthyPotion", "HeartAttack", "HeartBelt", "HeartKugelblitz", "HeartLantern", "HeartSkaters", "HeartbeatTimer", "HeartfeltLight", "HeartfeltTeleporter", "HeartwarmingCoffee", "HeavenlyBarrier", "HeavenlyCrown", "HeavenlyFloodlight", "HeavenlyJumpPad", "HeavenlyLantern", "HeavenlyReviveOrb", "HeavenlySmokeGrenade", "HeavenlySpeedpad", "HeavenlyTimer", "HeavensGate", "HeliPad", "HellfirePortal", "HellishGrip", "HermesPack", "HexagonCola", "HexerIris", "HollyBerryInfection", "HoneyJar", "HornsOfFrost", "HornsOfInferno", "HornsOfToxicity", "HorseshoeGate", "HorseshoeTeleporter", "HotChocolateDrink", "HotEvadeSurfboard", "HotHawaiianFlowers", "HoverTrain", "HowliteMaelstrom", "HungryTeleporter", "IVBag", "IceCrown", "IcePad", "IcySpeedPad", "IcyTeleporter", "IgneousGeyser", "IllusionEyes", "ImpaledHead", "ImperialBreacher", "ImprisonedSoulsLantern", "Infection", "Interloper", "IrishBeverage", "IrishShield", "IronMaidenLight", "IrradiatingHalo", "ItsGrip", "JackInTheBox", "JadeKoiJumpPad", "JadeLantern", "JadeSentinel", "Jard", "JardCatLantern", "JardClown", "JardFriend", "JardJumpPad", "JardSunderland", "JarredFishLantern", "JellyfishJunpPad", "JellyfishLantern", "JellyfishSwarm", "JollyCrown", "JollyDecoyCamera", "JollyGuitar", "JollySanta", "JollyScythe", "KATBarrier", "KhanOfWinter", "KingOfTheMoon", "KingOfTheNight", "KoiBarrier", "KoiFloodlight", "KoiPond", "KoiSpeedPad", "KoiTeleporter", "KrakensEye", "Krampus", "KrustyHat", "KugelblitzHorizon", "KugelblitzRing", "LEDFlashlight", "LOLCATZ", "LavaLamp", "LavenderUtopia", "LemonadeJug", "LensaticCompass", "LeprechaunsRune", "LevelVictorian", "LeviathanLocket", "LifesaverTeleporter", "LightSpeedPad", "Lighter", "LighthouseFloodlight", "LilypadMine", "LimeIceCream", "Locket", "Lollipop", "LotusFlashlight", "LoveChaser", "LoveFinder", "LovelyFrogLantern", "LovelyLantern", "LoveseekerVision", "LuckyCup", "LuckyDecoyGrenade", "LuckyStrike", "LuckySuspenders", "LuckyValkyrie", "LunarFortune", "LunarLight", "Lupen", "LupercaliaTommy", "LushPotion", "Lychgate", "MagicConchRadio", "MailboxGrapple", "MarchingSoldierSensor", "MariachiSetBlack", "MariachiSetYellow", "MarigoldJumpPad", "MarigoldRitual", "MarigoldSpeedpad", "MarigoldTimer", "MarkV", "MasterChief", "MechanicalBugler", "MechanicalCrocodile", "MechanicalScythe", "MechanicalWitchHat", "MedallionLantern", "MelodicalHarp", "MelodicalRudolph", "MelonRamune", "MeltedFrosty", "MeltingSnowman", "MeowPhone", "MeowberryMilk", "MidasTouch", "MilGradeFlashlight", "MilGradeTimer", "MilitaryFloodlight", "MilitaryGradeSensor", "MilitaryLantern", "MilkCarton", "Milkman", "MintyExplosion", "MintyGrapple", "MischeviousGingerbread", "MissFortune", "MoaiRadio", "MoaiSensor", "MoleMine", "MonochromeEclipse", "Monoculi", "MoonlightButterflies", "MorningButterflies", "MysticalFlowerFloodlight", "MysticalTree", "NaturesTrident", "Necromonicon", "NewYearRays", "NightLights", "NightVisionBlue", "NightVisionGold", "NightVisionPurple", "NightVisionRed", "NordicBeverage", "NordicBreacher", "NordicDecoy", "NordicFloodlight", "NordicLantern", "NorthPoleBarrier", "NorthPoleLampPost", "NorthPoleSign", "NorthernStar", "NorthernStarRadiance", "Nothing", "NoxiousAura", "NuclearDoom", "NuclearFuture", "NuclearSpeed", "NuclearSpeedpad", "OBCVision", "OakJumpPad", "OilDrumSpill", "OldBarrel", "OldCandelabra", "OminousDemise", "OmniMan", "OneBillionReward", "OneEyedSeeker", "OozingMoney", "OrangeEMP", "OrangeHallowedFace", "OrangeHeadphones", "OrangeSnowboard", "OrangeTicket", "OrbitingSerenade", "OrientalBarrier", "OrientalPad", "OrientalSpeedpad", "Ornabomb", "OrnamentBandolier", "OrnamentBeacon", "OrnamentHook", "OrnamentTimer", "OrnamentalBarrier", "OrnamentalCompass", "OrnamentalHelmet", "OrnateLantern", "OvergrownLantern", "OverhaulHat", "OverlordSet", "Overseer", "PVS32", "PadOfStyx", "PagodaFloodlight", "PalpitatingHeart", "PaperLantern", "ParasiticRadar", "ParticulateIridescence", "Party", "PenguinRadio", "PepperimentAurora", "PeppermintGrapple", "PermafrostStaff", "PhantomBlades", "PhantomHat", "PhantomSmokescreen", "PieLandmine", "PineappleRadar", "PinkUFOAbduction", "PlagueDoctorGoggles", "PlaguedIris", "PlaidHat", "PlantLandmine", "Pootis", "PopcatRadar", "PortableChimney", "PortalTurret", "PotOfGoldPin", "PresentJumpPad", "PresentMimic", "PrismaticGeyser", "PrismaticRadiance", "PrismaticWhispers", "PrototypeBeacon", "PuddingHat", "PufferfishMine", "PulsatingHeartTeleporter", "PumpkinDollBeacon", "PureLove", "PurpleEMP", "PurpleSnowboard", "PylonBarricade", "RadiantSun", "RainbowBarrier", "RapidPicnic", "RatMine", "RedAbduction", "RedBarrier", "RedEnvelopeDecoy", "RedFadedCape", "RedFloodlight", "RedRadar", "RedTicket", "Refractions", "ReindeerBeacon", "ReindeerHood", "ReindeerLight", "ReindogLight", "RelentlessBlizzard", "RetroCloverExplosion", "RetroRobloxJumpPad", "RetroToyRadar", "RingOfFireHalo", "RingTV", "RoaringSingularity", "RoastedChicken", "RockCompass", "RomanSword", "RosalineGateway", "Rose", "RoseGrapple", "RoseSpeedPad", "RoseTeleporter", "RoseateGeyser", "RosepetalGate", "RosyGrapple", "RubyAura", "RubyEggFloodlight", "RudolphTeleporter", "RuinousArcana", "RunicCloverLegs", "RunicRitual", "RunicTeleporter", "RunicTimer", "RunicWinds", "SPFSmokescreen", "SageBarrier", "SailfishGrapple", "SakuraBarrier", "SakuraBreacher", "SakuraFloodlight", "SakuraFlowers", "SakuraJumpPad", "SakuraLantern", "SakuraSpeedPad", "SakuraTree", "SandcastleBarrier", "SandcastleTeleporter", "Sangheili", "SantaHat", "SantaPuppeteer", "SantaSuit", "SantasBag", "SantasBreacher", "SantasList", "SantasRadar", "SantasRadio", "SantasRevivalSack", "SantasSpecter", "SapphireAura", "SapphireGrapple", "SatchelOfNoobs", "ScarletMaelstrom", "ScarletSlash", "ScarletsStrike", "ScorchingScarecrow", "ScubaGoggles", "Seal", "SealBuds", "SealGift", "SealPal", "SealStack", "SealedBook", "SeekingEye", "SelenesGrace", "Sensei", "ShamrockBarrier", "ShamrockBreacher", "ShamrockDefibrillator", "ShamrockGrappleHook", "ShamrockJumpPad", "ShamrockShimmer", "ShamrockSpeedPad", "ShamrockSpill", "SharkBarrier", "SheepMine", "SheepSensor", "ShimmeringCoronet", "ShimmeringParadise", "ShiningPearlBeacon", "ShiningSparkles", "ShiningSun", "SilveryCrown", "SkeletalGrapple", "SkeletalGrasp", "SkiVision", "SkullCup", "SkullFloodlight", "SkullLandmine", "SkullLantern", "SkullLight", "SkullOfFrost", "SkullOfInferno", "SleighSpeedpad", "SlipnSlideSpeedpad", "SmokeOrnabomb", "SnakeSpeedPad", "SnowGlobeLight", "SnowflakeAegis", "SnowflakeJumpPad", "SnowflakeTeleporter", "Snowflakes", "Snowglobe", "SnowglobeLantern", "SnowlauncherGrapple", "SnowmanBarrier", "SnowmanBomb", "SnowmanCompass", "SnowmanHead", "SnowmanJumpPad", "SnowmanLight", "SnowmanRadio", "SnowmanTrap", "Snownado", "SockStocking", "SolarFlareStreak", "Soldier", "SoulExtinguisher", "SoulHook", "SoulLantern", "SoulRifter", "SoulSnatcher", "SpawnHalo", "SpawnTeleporter", "SpectralSummoning", "SpiderEye", "SpiderInfestation", "SpiderTrap", "SpikySeaMine", "SpilledCauldron", "SpilledCocoaPad", "SpilledGold", "SpiritBox", "Spy", "StPixels", "StageSet", "StarfishJunpPad", "StellarSurge", "Stopwatch", "StrawberryJuice", "SubmarineSensor", "SubzeroBurst", "SubzeroTripmine", "SummerJard", "SunflowerJumpPad", "SunnyFlashlight", "SunnySkies", "SurvivalVictorian", "SuspendedLights", "SweetBreacher", "SwordRuneTeleporter", "TastyTimer", "TatteredCape", "Technician", "Technotic", "TeddyDecoy", "TeddyInfestation", "TeddyRadar", "TeddyTrap", "Telespell", "TheCorrupted", "TheEnd", "TheHidden", "Thermocline", "ThornyRoseMine", "ThunderingStorm", "TikiBarrier", "TikiFlame", "TimeKeeper", "Timewarp", "Tixsplosion", "Tombstone", "TopazAura", "ToucanBreacher", "TowerBarrier", "TowerFloodlight", "ToxicInferno", "ToyNutcracker", "ToyTrain", "TrailSpeedPad", "TrampolineJumpPad", "TreasureChestBeacon", "TreasureChestTeleporter", "TreasureMapDecoy", "TreeBarrier", "TressleGate", "TrickOrTreatLantern", "Trooper", "TropicalHawaiianFlowers", "TurboThruster", "TurkeyLight", "TweetReward", "UFOLandmine", "VRHeadset", "ValentineBrawler", "ValentineRoses", "ValentinesHeadband", "ValentinianBeast", "VampireOutfit", "VampiricRadar", "Vanguard", "VaporwaveRays", "VerdantStag", "VerdantSurge", "VintageHat", "VioletNocturne", "ViridianLantern", "VoidCorruption", "VoidStar", "Voltaic", "Vortex", "WaferCatJumpPad", "WalkieTalkie", "WardingLantern", "WarpAura", "WaterGunGrapple", "WebTraps", "WeddingGate", "WeepingBobo", "Werewolf", "WhippedCoffee", "WhiteCape", "WhoopeeCushionMine", "WingedVerdantLight", "Wings", "WinterChains", "WinterElixir", "WinterSeer", "WinterfangBarrier", "WintertideEssence", "WishingWellTeleporter", "WispyFlowerLantern", "WitchCola", "WitchGoggles", "WitchHat", "WizardCatFloodlight", "WoodenNutcracker", "WorkerElf", "WorkshopConveyer", "Wreath", "WretchedWings", "WrithingEyes", "WyvernFlashlight", "XMASTreeLight", "XMasTreeHat", "XR8000", "XR9000", "XmasBurst", "XmasTreeBarrier", "XmasTreeCookie", "XmasTreeSuit", "Zombie", "ZombieSkeleton", "ZombieVision", "bobotower", "handtest", "sus", "testlol"}
+    table.sort(EMOTE_LIST); table.sort(COSMETIC_LIST)
+    local swapData={emote={},cosmetic={}}
+    local selTarget=EMOTE_LIST[1]; local selReplacer=EMOTE_LIST[2]
+    local activeTab="emote"; local autoReapply=true
+    local function getFolders()
+        local items=RS:FindFirstChild("Items"); if not items then return nil,nil end
+        return items:FindFirstChild("Emotes"), items:FindFirstChild("Cosmetics")
+    end
+    local function applyAllSwaps()
+        local emotes,cosmetics=getFolders(); if not emotes or not cosmetics then return 0 end
+        local swapped=0
+        for _,tabName in pairs({"emote","cosmetic"}) do
+            local folder=tabName=="emote" and emotes or cosmetics
+            for _,p in ipairs(swapData[tabName]) do
+                local obj=folder:FindFirstChild(p.replacer)
+                if obj then obj.Name=p.target; swapped=swapped+1
+                elseif folder:FindFirstChild(p.target) then swapped=swapped+1 end
+            end
+        end
+        return swapped
+    end
+    local function applySwap()
+        local emotes,cosmetics=getFolders(); if not emotes or not cosmetics then return 0 end
+        local swapped=0; local folder=activeTab=="emote" and emotes or cosmetics
+        for _,p in ipairs(swapData[activeTab]) do
+            local obj=folder:FindFirstChild(p.replacer)
+            if obj then obj.Name=p.target; swapped=swapped+1
+            elseif folder:FindFirstChild(p.target) then swapped=swapped+1 end
+        end
+        return swapped
+    end
+    local function revertSwap()
+        local emotes,cosmetics=getFolders(); if not emotes or not cosmetics then return 0 end
+        local reverted=0; local folder=activeTab=="emote" and emotes or cosmetics
+        for _,p in ipairs(swapData[activeTab]) do
+            local obj=folder:FindFirstChild(p.target)
+            if obj then obj.Name=p.replacer; reverted=reverted+1 end
+        end
+        return reverted
+    end
+    task.spawn(function()
+        while task.wait(2) do
+            if not autoReapply then continue end
+            if #swapData["emote"]+#swapData["cosmetic"]==0 then continue end
+            local emotes,cosmetics=getFolders(); if not emotes or not cosmetics then continue end
+            local needReapply=false
+            for _,tabName in pairs({"emote","cosmetic"}) do
+                local folder=tabName=="emote" and emotes or cosmetics
+                for _,p in ipairs(swapData[tabName]) do if folder:FindFirstChild(p.replacer) then needReapply=true; break end end
+                if needReapply then break end
+            end
+            if needReapply then applyAllSwaps() end
+        end
+    end)
+    local gui = Instance.new("ScreenGui")
+    gui.Name="EvadeSwapperFull"; gui.ResetOnSpawn=false; gui.ZIndexBehavior=Enum.ZIndexBehavior.Sibling
+    local ok=pcall(function() gui.Parent=gethui() end); if not ok then gui.Parent=PlayerGui end
+    local W, H = 460, 568
+    local main = MkFrame(gui, UDim2.new(0,W,0,H), UDim2.new(0.5,-W/2,0.5,-H/2), THEME.bg)
+    MkCorner(14, main)
+    MkFrame(main, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), THEME.violet, 0.94)
+    MkOrbBg(main); MkScanline(main)
+    local tb, _ = MkTitleBar(main, 48, "Evade Swapper", "", "EVADE")
+    MkCloseBtn(tb, function() gui:Destroy() end)
+    MkDraggable(tb, main)
+    local tabBar = MkFrame(main, UDim2.new(1,-24,0,32), UDim2.new(0,12,0,54), THEME.bg3); MkCorner(8, tabBar); MkStroke(THEME.violet, 0.5, tabBar)
+    local switchTab
+    local tabE = Instance.new("TextButton", tabBar)
+    tabE.Size=UDim2.new(0.5,-3,1,-6); tabE.Position=UDim2.new(0,3,0,3)
+    tabE.BackgroundColor3=THEME.violet; tabE.TextColor3=THEME.white
+    tabE.TextSize=12; tabE.Font=Enum.Font.GothamBold; tabE.BorderSizePixel=0
+    tabE.AutoButtonColor=false; tabE.Text="Emote"; MkCorner(8,tabE)
+    local tabC = Instance.new("TextButton", tabBar)
+    tabC.Size=UDim2.new(0.5,-3,1,-6); tabC.Position=UDim2.new(0.5,1,0,3)
+    tabC.BackgroundColor3=THEME.bg2; tabC.TextColor3=THEME.dim
+    tabC.TextSize=12; tabC.Font=Enum.Font.GothamBold; tabC.BorderSizePixel=0
+    tabC.AutoButtonColor=false; tabC.Text="Cosmetic"; MkCorner(8,tabC)
+    tabE.MouseButton1Click:Connect(function() switchTab("emote") end)
+    tabC.MouseButton1Click:Connect(function() switchTab("cosmetic") end)
+    local body = MkFrame(main, UDim2.new(1,-24,0,H-100), UDim2.new(0,12,0,92), THEME.bg, 1)
+    local COL = (W-24-12)/2
+    MkLabel(body,"From",UDim2.new(0,COL,0,14),UDim2.new(0,0,0,0),THEME.violet,11,true)
+    MkLabel(body,"original name",UDim2.new(0,COL,0,12),UDim2.new(0,0,0,14),THEME.muted,10)
+    MkLabel(body,"To",UDim2.new(0,COL,0,14),UDim2.new(0,COL+12,0,0),THEME.green,11,true)
+    MkLabel(body,"display as",UDim2.new(0,COL,0,12),UDim2.new(0,COL+12,0,14),THEME.muted,10)
+    MkLabel(body,"",UDim2.new(0,12,0,32),UDim2.new(0,COL,0,26),THEME.violet,16,true,Enum.TextXAlignment.Center)
+    local activeDropdown=nil; local MAX_SHOWN=20
+    local function createDropdown(posX,posY,defaultList,defaultVal,onSelect)
+        local currentList=defaultList; local currentVal=defaultVal; local lastFilter=nil
+        local dispBtn=Instance.new("TextButton"); dispBtn.Size=UDim2.new(0,COL,0,32); dispBtn.Position=UDim2.new(0,posX,0,posY)
+        dispBtn.BackgroundColor3=THEME.bg2; dispBtn.Text=currentVal; dispBtn.TextColor3=THEME.text
+        dispBtn.TextSize=11; dispBtn.Font=Enum.Font.GothamBold; dispBtn.BorderSizePixel=0; dispBtn.AutoButtonColor=false; dispBtn.Parent=body; dispBtn.ZIndex=5
+        MkCorner(7,dispBtn); MkStroke(THEME.violet,0.8,dispBtn)
+        MkLabel(dispBtn,"",UDim2.new(0,16,1,0),UDim2.new(1,-20,0,0),THEME.violet,13,true,Enum.TextXAlignment.Center).ZIndex=6
+        local panel=MkFrame(main,UDim2.new(0,COL,0,190),UDim2.new(0,0,0,0),THEME.bg2); panel.Visible=false; panel.ZIndex=50; MkCorner(8,panel); MkStroke(THEME.violet,1,panel)
+        local function reposPanel() panel.Position=UDim2.new(0,body.Position.X.Offset+posX,0,body.Position.Y.Offset+posY+36) end
+        reposPanel()
+        local searchBox=Instance.new("TextBox"); searchBox.Size=UDim2.new(1,-8,0,26); searchBox.Position=UDim2.new(0,4,0,4)
+        searchBox.BackgroundColor3=THEME.bg3; searchBox.PlaceholderText="search..."; searchBox.PlaceholderColor3=THEME.muted; searchBox.Text=""; searchBox.TextColor3=THEME.text; searchBox.TextSize=11; searchBox.Font=Enum.Font.Gotham; searchBox.BorderSizePixel=0; searchBox.ClearTextOnFocus=false; searchBox.ZIndex=51; searchBox.Parent=panel; MkCorner(5,searchBox); MkStroke(THEME.violet,0.5,searchBox)
+        local scroll=Instance.new("ScrollingFrame"); scroll.Size=UDim2.new(1,-6,0,152); scroll.Position=UDim2.new(0,3,0,34); scroll.BackgroundTransparency=1; scroll.BorderSizePixel=0; scroll.ScrollBarThickness=3; scroll.ScrollBarImageColor3=THEME.violet; scroll.CanvasSize=UDim2.new(0,0,0,0); scroll.ZIndex=51; scroll.Parent=panel
+        Instance.new("UIListLayout",scroll).Padding=UDim.new(0,2)
+        local function populate(filter)
+            if filter==lastFilter then return end; lastFilter=filter
+            task.spawn(function()
+                for _,c in ipairs(scroll:GetChildren()) do if c:IsA("TextButton") or c:IsA("TextLabel") then c:Destroy() end end
+                local count=0; local total=0
+                for _,name in ipairs(currentList) do
+                    if filter=="" or string.lower(name):find(string.lower(filter),1,true) then
+                        total=total+1
+                        if count<MAX_SHOWN then
+                            count=count+1
+                            local item=Instance.new("TextButton"); item.Size=UDim2.new(1,-4,0,25); item.BackgroundColor3=name==currentVal and THEME.violet or THEME.bg3
+                            item.BackgroundTransparency=name==currentVal and 0.5 or 0; item.Text=name; item.TextColor3=THEME.text; item.TextSize=11; item.Font=Enum.Font.Gotham; item.BorderSizePixel=0; item.LayoutOrder=count; item.ZIndex=52; item.Parent=scroll; MkCorner(5,item)
+                            item.MouseEnter:Connect(function() if name~=currentVal then item.BackgroundColor3=THEME.violet; item.BackgroundTransparency=0.7 end end)
+                            item.MouseLeave:Connect(function() if name~=currentVal then item.BackgroundColor3=THEME.bg3; item.BackgroundTransparency=0 end end)
+                            item.MouseButton1Click:Connect(function() currentVal=name; dispBtn.Text=name; panel.Visible=false; activeDropdown=nil; onSelect(name); lastFilter=nil; populate("") end)
+                        end
+                    end
+                end
+                local extra=total-count; if extra>0 then local hl=Instance.new("TextLabel"); hl.Size=UDim2.new(1,0,0,20); hl.BackgroundTransparency=1; hl.Text=""..extra.." more"; hl.TextColor3=THEME.violet; hl.TextSize=10; hl.Font=Enum.Font.Gotham; hl.LayoutOrder=999; hl.ZIndex=52; hl.Parent=scroll end
+                scroll.CanvasSize=UDim2.new(0,0,0,count*27+(extra>0 and 22 or 0))
+            end)
+        end
+        local debounce; searchBox:GetPropertyChangedSignal("Text"):Connect(function() if debounce then task.cancel(debounce) end; debounce=task.delay(0.2,function() populate(searchBox.Text) end) end)
+        dispBtn.MouseButton1Click:Connect(function()
+            if activeDropdown and activeDropdown~=panel then activeDropdown.Visible=false end
+            reposPanel(); panel.Visible=not panel.Visible
+            if panel.Visible then activeDropdown=panel; searchBox.Text=""; lastFilter=nil; populate("") else activeDropdown=nil end
+        end)
+        local self={}; function self:setList(list) currentList=list; lastFilter=nil; currentVal=list[1] or ""; dispBtn.Text=currentVal end; return self
+    end
+    local dd1=createDropdown(0,28,EMOTE_LIST,EMOTE_LIST[1],function(v) selTarget=v end)
+    local dd2=createDropdown(COL+12,28,EMOTE_LIST,EMOTE_LIST[2],function(v) selReplacer=v end)
+    local updateList
+    switchTab=function(t)
+        activeTab=t; local list=t=="emote" and EMOTE_LIST or COSMETIC_LIST
+        selTarget=list[1] or ""; selReplacer=list[2] or ""; dd1:setList(list); dd2:setList(list)
+        tabE.BackgroundColor3 = t=="emote"    and THEME.violet or THEME.bg2
+        tabE.TextColor3       = t=="emote"    and THEME.white  or THEME.dim
+        tabC.BackgroundColor3 = t=="cosmetic" and THEME.violet or THEME.bg2
+        tabC.TextColor3       = t=="cosmetic" and THEME.white  or THEME.dim
+        updateList()
+    end
+    local addBtn = MkBtn(body,"Add Swap",UDim2.new(1,0,0,32),UDim2.new(0,0,0,72),THEME.violet,12)
+    addBtn.MouseButton1Click:Connect(function()
+        if selTarget==selReplacer then MkToast(gui,"from dan to tidak boleh sama",true); return end
+        local list=swapData[activeTab]
+        for _,p in ipairs(list) do if p.target==selTarget then MkToast(gui,selTarget.." sudah ada di list",true); return end end
+        table.insert(list,{target=selTarget,replacer=selReplacer,type=activeTab}); MkToast(gui,selReplacer..""..selTarget); updateList()
+    end)
+    MkSection(body,"DAFTAR SWAP",114)
+    local listBG = MkFrame(body, UDim2.new(1,0,0,150), UDim2.new(0,0,0,138), THEME.bg2); MkCorner(8,listBG); MkStroke(THEME.violet,0.5,listBG)
+    local pairScroll=Instance.new("ScrollingFrame"); pairScroll.Size=UDim2.new(1,-6,1,-6); pairScroll.Position=UDim2.new(0,3,0,3); pairScroll.BackgroundTransparency=1; pairScroll.BorderSizePixel=0; pairScroll.ScrollBarThickness=3; pairScroll.ScrollBarImageColor3=THEME.violet; pairScroll.CanvasSize=UDim2.new(0,0,0,0); pairScroll.Parent=listBG
+    Instance.new("UIListLayout",pairScroll).Padding=UDim.new(0,3)
+    local emptyLbl=MkLabel(pairScroll,"— empty —",UDim2.new(1,0,0,20),UDim2.new(0,0,0,4),THEME.muted,11,false,Enum.TextXAlignment.Center)
+    updateList=function()
+        for _,c in ipairs(pairScroll:GetChildren()) do if c:IsA("Frame") then c:Destroy() end end
+        local list=swapData[activeTab]; emptyLbl.Visible=#list==0
+        for i,p in ipairs(list) do
+            local row=MkFrame(pairScroll,UDim2.new(1,-4,0,28),UDim2.new(0,2,0,0),i%2==0 and THEME.bg3 or THEME.bg2); MkCorner(6,row); row.LayoutOrder=i
+            local ic=p.type=="cosmetic" and "[C] " or "[E] "
+            MkLabel(row,ic..p.replacer,UDim2.new(0,150,1,0),UDim2.new(0,8,0,0),THEME.green,11,true)
+            MkLabel(row,"",UDim2.new(0,16,1,0),UDim2.new(0,162,0,0),THEME.violet,13,true,Enum.TextXAlignment.Center)
+            MkLabel(row,p.target,UDim2.new(0,150,1,0),UDim2.new(0,180,0,0),THEME.cyan,11,true)
+            local xBtn=MkBtn(row,"X",UDim2.new(0,22,0,18),UDim2.new(1,-26,0.5,-9),THEME.red,10)
+            xBtn.MouseButton1Click:Connect(function() table.remove(list,i); updateList(); MkToast(gui,p.target.." dihapus") end)
+        end
+        pairScroll.CanvasSize=UDim2.new(0,0,0,#list*31)
+    end
+    updateList()
+    local autoReapplyBtn = MkToggleBtn(body,"AUTO REAPPLY: ON",UDim2.new(1,0,0,28),UDim2.new(0,0,0,296),THEME.green,11)
+    autoReapplyBtn.MouseButton1Click:Connect(function()
+        autoReapply=not autoReapply
+        autoReapplyBtn.Text=autoReapply and "AUTO REAPPLY: ON" or "AUTO REAPPLY: OFF"
+        TW(autoReapplyBtn,{BackgroundColor3=autoReapply and THEME.green or THEME.red},0.15)
+        MkToast(gui,autoReapply and "auto reapply aktif" or "auto reapply nonaktif")
+    end)
+    local applyBtn  = MkBtn(body,"Apply", UDim2.new(0.63,-4,0,34),UDim2.new(0,0,0,332),    THEME.violet,12)
+    local revertBtn = MkBtn(body,"Revert",UDim2.new(0.37,-4,0,34),UDim2.new(0.63,4,0,332),  Color3.fromRGB(120,70,20),12)
+    local clearBtn  = MkBtn(body,"Clear", UDim2.new(1,0,0,28),     UDim2.new(0,0,0,374),    THEME.red,11)
+    applyBtn.MouseButton1Click:Connect(function()
+        if #swapData["emote"]==0 and #swapData["cosmetic"]==0 then MkToast(gui,"tambah sesuatu dulu",true); return end
+        local swapped=applySwap(); MkToast(gui,swapped and swapped>0 and swapped.." item diterapkan" or "item tidak ditemukan",swapped==nil or swapped==0)
+    end)
+    revertBtn.MouseButton1Click:Connect(function() local rev=revertSwap(); MkToast(gui,rev>0 and rev.." item dikembalikan" or "tidak ada yang dikembalikan",rev==0) end)
+    clearBtn.MouseButton1Click:Connect(function() swapData[activeTab]={}; updateList(); MkToast(gui,"list dikosongkan") end)
+    MkFooter(main, H, "Evade Swapper  |  Tekan P untuk HIDE/SHOW UI")
+    UIS.InputBegan:Connect(function(inp,gpe)
+        if gpe then return end
+        if inp.KeyCode==Enum.KeyCode.P then main.Visible=not main.Visible end
+        if inp.UserInputType==Enum.UserInputType.MouseButton1 then if activeDropdown then activeDropdown.Visible=false; activeDropdown=nil end end
+    end)
+    MkToast(gui,"Evade Swapper loaded — auto reapply aktif")
+end
+
+-- ================================================
+-- SCRIPT 2: RTX GRAPHICS
+-- ================================================
+loadRTX = function()
+    local currentTime=7; local timeControlActive=true
+    local dofSettings={enabled=true,farIntensity=0.02,nearIntensity=0.0,focusDistance=15,inFocusRadius=150}
+    local dofInstance=nil; local mainPanelRef=nil
+    local function ApplyDOFSettings()
+        if dofInstance then pcall(function() dofInstance:Destroy() end);dofInstance=nil end
+        if not dofSettings.enabled then return end
+        pcall(function() dofInstance=Instance.new("DepthOfFieldEffect",Lighting);dofInstance.FarIntensity=dofSettings.farIntensity;dofInstance.NearIntensity=dofSettings.nearIntensity;dofInstance.FocusDistance=dofSettings.focusDistance;dofInstance.InFocusRadius=dofSettings.inFocusRadius end)
+    end
+    local function ApplyRTXSettings()
+        for _,item in pairs(Lighting:GetChildren()) do if item:IsA("PostProcessEffect") or item:IsA("Atmosphere") then item:Destroy() end end
+        Lighting.Brightness=3;Lighting.ShadowSoftness=0;Lighting.EnvironmentDiffuseScale=1;Lighting.EnvironmentSpecularScale=1;Lighting.OutdoorAmbient=Color3.fromRGB(70,75,90);Lighting.ExposureCompensation=0.5
+        local atm=Instance.new("Atmosphere",Lighting);atm.Density=0.15;atm.Offset=0.2;atm.Color=Color3.fromRGB(200,215,230);atm.Decay=Color3.fromRGB(150,160,180);atm.Glare=0.2;atm.Haze=0.5
+        local cc=Instance.new("ColorCorrectionEffect",Lighting);cc.TintColor=Color3.fromRGB(240,245,255)
+        ApplyDOFSettings();Lighting.ClockTime=currentTime
+    end
+    local sliderUpdaters = {}
+    local function CreateDOFSlider(parent,labelText,yPos,initVal,minVal,maxVal,onChanged)
+        MkLabel(parent,labelText,UDim2.new(1,-55,0,15),UDim2.new(0,10,0,yPos),THEME.dim,9,true)
+        local valLbl=MkLabel(parent,tostring(math.floor(initVal*100)/100),UDim2.new(0,45,0,15),UDim2.new(1,-50,0,yPos),THEME.magenta,9,true,Enum.TextXAlignment.Right)
+        local sBg=MkFrame(parent,UDim2.new(1,-20,0,6),UDim2.new(0,10,0,yPos+18),THEME.bg3);MkCorner(3,sBg);MkStroke(THEME.violet,0.4,sBg)
+        local sFill=MkFrame(sBg,UDim2.new(0,0,1,0),UDim2.new(0,0,0,0),THEME.violet);MkCorner(3,sFill)
+        local sThumb=MkFrame(sBg,UDim2.new(0,10,0,10),UDim2.new(0,0,0.5,-5),THEME.white);sThumb.ZIndex=2;MkCorner(5,sThumb);MkStroke(THEME.violet,1,sThumb)
+        local dragging=false;local mouse=LocalPlayer:GetMouse()
+        local function upSlider()
+            local pos=mouse.X-sBg.AbsolutePosition.X;local pct=math.clamp(pos/sBg.AbsoluteSize.X,0,1)
+            local val=minVal+(maxVal-minVal)*pct;sFill.Size=UDim2.new(pct,0,1,0);sThumb.Position=UDim2.new(pct,-5,0.5,-5)
+            valLbl.Text=tostring(math.floor(val*1000)/1000);onChanged(val)
+        end
+        sBg.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true;upSlider() end end)
+        sThumb.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true end end)
+        UIS.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then dragging=false end end)
+        local pct=(initVal-minVal)/(maxVal-minVal);sFill.Size=UDim2.new(pct,0,1,0);sThumb.Position=UDim2.new(pct,-5,0.5,-5)
+        return function() if dragging then upSlider() end end
+    end
+    local function CreateRTXUI()
+        local screenGui=Instance.new("ScreenGui");screenGui.Name="UnifiedControlUI";screenGui.DisplayOrder=100;screenGui.ResetOnSpawn=false;screenGui.Parent=PlayerGui
+        local W2, H2 = 260, 420
+        local mainPanel=MkFrame(screenGui,UDim2.new(0,W2,0,H2),UDim2.new(1,-W2-12,0,80),THEME.bg)
+        MkCorner(14,mainPanel); MkFrame(mainPanel,UDim2.fromScale(1,1),UDim2.new(0,0,0,0),THEME.violet,0.94); MkOrbBg(mainPanel); MkScanline(mainPanel)
+        local titleBar2, _ = MkTitleBar(mainPanel, 48, "RTX Graphics", "", "UNIVERSAL")
+        MkCloseBtn(titleBar2,function() mainPanel.Visible=not mainPanel.Visible end)
+        MkDraggable(titleBar2, mainPanel)
+        local tabBg2=MkFrame(mainPanel,UDim2.new(1,-16,0,30),UDim2.new(0,8,0,54),THEME.bg3);MkCorner(8,tabBg2);MkStroke(THEME.violet,0.5,tabBg2)
+        local function mkTabBtn2(label,xFrac,initColor)
+            local b=Instance.new("TextButton",tabBg2)
+            b.Size=UDim2.new(0.5,-4,1,-8); b.Position=UDim2.new(xFrac,2,0,4)
+            b.BackgroundColor3=initColor or THEME.bg2; b.TextColor3=initColor==THEME.violet and THEME.white or THEME.dim
+            b.TextSize=10; b.Font=Enum.Font.GothamBold; b.BorderSizePixel=0
+            b.AutoButtonColor=false; b.Text=label; MkCorner(8,b); return b
+        end
+        local timeTabBtn=mkTabBtn2("🕐 TIME",0,THEME.violet)
+        local blurTabBtn=mkTabBtn2("🔵 BLUR",0.5,THEME.bg2)
+        local contentArea=MkFrame(mainPanel,UDim2.new(1,-16,0,H2-130),UDim2.new(0,8,0,90),THEME.bg,1)
+        contentArea.ClipsDescendants=true
+        local timeContent=MkFrame(contentArea,UDim2.fromScale(1,1),UDim2.new(0,0,0,0),THEME.bg,1)
+        local blurContent=MkFrame(contentArea,UDim2.fromScale(1,1),UDim2.new(0,0,0,0),THEME.bg,1);blurContent.Visible=false
+        local timeDisplay=MkFrame(timeContent,UDim2.new(1,0,0,44),UDim2.new(0,0,0,4),THEME.bg2);MkCorner(10,timeDisplay);MkStroke(THEME.violet,1,timeDisplay)
+        local timeLabel=MkLabel(timeDisplay,"07:00",UDim2.fromScale(1,1),UDim2.new(0,0,0,0),THEME.violet,28,true,Enum.TextXAlignment.Center)
+        local sliderBg2=MkFrame(timeContent,UDim2.new(1,0,0,8),UDim2.new(0,0,0,54),THEME.bg3);MkCorner(4,sliderBg2);MkStroke(THEME.violet,0.5,sliderBg2)
+        local sliderFill2=MkFrame(sliderBg2,UDim2.new(0,0,1,0),UDim2.new(0,0,0,0),THEME.violet);MkCorner(4,sliderFill2)
+        local sliderThumb2=MkFrame(sliderBg2,UDim2.new(0,12,0,12),UDim2.new(0,0,0.5,-6),THEME.green);sliderThumb2.ZIndex=2;MkCorner(6,sliderThumb2)
+        local inputBox2=MkFrame(timeContent,UDim2.new(1,0,0,30),UDim2.new(0,0,0,70),THEME.bg2);MkCorner(8,inputBox2);MkStroke(THEME.violet,0.5,inputBox2)
+        local inputTB=Instance.new("TextBox",inputBox2);inputTB.Size=UDim2.new(1,-12,1,0);inputTB.Position=UDim2.new(0,6,0,0);inputTB.BackgroundTransparency=1;inputTB.PlaceholderText="0-24...";inputTB.TextColor3=THEME.text;inputTB.TextSize=13;inputTB.Font=Enum.Font.Gotham;inputTB.BorderSizePixel=0
+        local function setTime(hour)
+            hour=math.clamp(tonumber(hour) or 0,0,24);currentTime=hour;Lighting.ClockTime=hour
+            local h=math.floor(hour);local m=math.floor((hour-h)*60)
+            timeLabel.Text=string.format("%02d:%02d",h,m);local pct=hour/24
+            sliderFill2.Size=UDim2.new(pct,0,1,0);sliderThumb2.Position=UDim2.new(pct,-6,0.5,-6)
+            inputTB.Text=tostring(math.floor(hour*10)/10)
+        end
+        inputTB.FocusLost:Connect(function() if inputTB.Text~="" then setTime(tonumber(inputTB.Text) or currentTime) end end)
+        local sliderDragging2=false;local smouse2=LocalPlayer:GetMouse()
+        local function upTimeSlider2() local pos=smouse2.X-sliderBg2.AbsolutePosition.X;local pct=math.clamp(pos/sliderBg2.AbsoluteSize.X,0,1);setTime(pct*24) end
+        sliderBg2.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then sliderDragging2=true;upTimeSlider2() end end)
+        sliderThumb2.InputBegan:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then sliderDragging2=true end end)
+        UIS.InputEnded:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseButton1 then sliderDragging2=false end end)
+        table.insert(sliderUpdaters,CreateDOFSlider(blurContent,"Far Intensity",4,dofSettings.farIntensity,0,1.0,function(v) dofSettings.farIntensity=v;ApplyDOFSettings() end))
+        table.insert(sliderUpdaters,CreateDOFSlider(blurContent,"Near Intensity",40,dofSettings.nearIntensity,0,1.0,function(v) dofSettings.nearIntensity=v;ApplyDOFSettings() end))
+        table.insert(sliderUpdaters,CreateDOFSlider(blurContent,"Focus Distance",76,dofSettings.focusDistance,0,100,function(v) dofSettings.focusDistance=v;ApplyDOFSettings() end))
+        table.insert(sliderUpdaters,CreateDOFSlider(blurContent,"In-Focus Radius",112,dofSettings.inFocusRadius,0,500,function(v) dofSettings.inFocusRadius=v;ApplyDOFSettings() end))
+        local dofToggleBtn=MkToggleBtn(blurContent,"DOF: ON",UDim2.new(1,0,0,28),UDim2.new(0,0,0,152),THEME.green,11)
+        dofToggleBtn.MouseButton1Click:Connect(function() dofSettings.enabled=not dofSettings.enabled;if dofSettings.enabled then dofToggleBtn.Text="DOF: ON";TW(dofToggleBtn,{BackgroundColor3=THEME.green},0.15) else dofToggleBtn.Text="DOF: OFF";TW(dofToggleBtn,{BackgroundColor3=THEME.red},0.15) end;ApplyDOFSettings() end)
+        local resetBtn2=MkBtn(blurContent,"Reset DOF",UDim2.new(1,0,0,28),UDim2.new(0,0,0,186),THEME.violet,11)
+        resetBtn2.MouseButton1Click:Connect(function() dofSettings.farIntensity=0.02;dofSettings.nearIntensity=0.0;dofSettings.focusDistance=15;dofSettings.inFocusRadius=150;dofSettings.enabled=true;dofToggleBtn.Text="DOF: ON";TW(dofToggleBtn,{BackgroundColor3=THEME.green},0.15);ApplyDOFSettings() end)
+        local reactivateBtn=MkBtn(mainPanel,"Reactivate",UDim2.new(1,-16,0,30),UDim2.new(0,8,1,-70),THEME.violet,11)
+        reactivateBtn.MouseButton1Click:Connect(function() ApplyRTXSettings();TW(reactivateBtn,{BackgroundColor3=THEME.green},0.2);task.delay(0.7,function() TW(reactivateBtn,{BackgroundColor3=THEME.violet},0.3) end) end)
+        MkFooter(mainPanel, H2, "RTX Graphics  |  Tekan L untuk HIDE/SHOW UI")
+        local function SwitchTab2(t)
+            if t=="TIME" then
+                timeContent.Visible=true; blurContent.Visible=false
+                timeTabBtn.BackgroundColor3=THEME.violet; timeTabBtn.TextColor3=THEME.white
+                blurTabBtn.BackgroundColor3=THEME.bg2;    blurTabBtn.TextColor3=THEME.dim
+            else
+                timeContent.Visible=false; blurContent.Visible=true
+                blurTabBtn.BackgroundColor3=THEME.magenta; blurTabBtn.TextColor3=THEME.white
+                timeTabBtn.BackgroundColor3=THEME.bg2;     timeTabBtn.TextColor3=THEME.dim
+            end
+        end
+        timeTabBtn.MouseButton1Click:Connect(function() SwitchTab2("TIME") end)
+        blurTabBtn.MouseButton1Click:Connect(function() SwitchTab2("BLUR") end)
+        SwitchTab2("TIME"); setTime(7)
+        local rtxMasterConn=RunService.RenderStepped:Connect(function()
+            if sliderDragging2 then upTimeSlider2() end
+            if timeControlActive and math.abs(Lighting.ClockTime-currentTime)>0.1 then Lighting.ClockTime=currentTime end
+            for _,fn in ipairs(sliderUpdaters) do fn() end
+        end)
+        screenGui.AncestryChanged:Connect(function() if not screenGui.Parent then if rtxMasterConn then rtxMasterConn:Disconnect() end end end)
+        return mainPanel
+    end
+    ApplyRTXSettings()
+    UIS.InputBegan:Connect(function(input,gpe) if gpe then return end;if mainPanelRef and input.KeyCode==Enum.KeyCode.L then mainPanelRef.Visible=not mainPanelRef.Visible end end)
+    task.spawn(function() local panel=CreateRTXUI();if panel then mainPanelRef=panel end end)
+end
+
+-- ================================================
+-- SCRIPT 3: VISUAL KORBLOX
+-- MODIFIKASI: Hapus fitur warna, tambah Stretch Y
+-- ================================================
+-- ================================================
+-- SCRIPT 3: VISUAL KORBLOX
+-- MODIFIKASI: Hapus fitur warna, tambah Stretch Y + Size XZ
+-- ================================================
+-- ================================================
+-- SCRIPT 3: VISUAL KORBLOX
+-- MODIFIKASI: Hapus fitur warna, tambah Stretch Y + Size XZ
+-- ================================================
+loadKorblox = function()
+   local player = LocalPlayer  -- tambah ini
+   local KORBLOX_MESH_ID = "rbxassetid://101851696"
+local LEFT_MESH_ID       = "rbxassetid://101851582"
+local KORBLOX_TEXTURE_ID = "rbxassetid://101851254"
+local DARK_GREY_COLOR    = Color3.fromRGB(64, 64, 64)
+local CONFIG_FILE        = "korblox_config.json"
+
+-- ================================================
+-- GLOBAL THEME (sama persis launcher)
+-- ================================================
+local THEME = {
+    bg      = Color3.fromRGB(7,   5,  18),
+    bg2     = Color3.fromRGB(14,  9,  32),
+    bg3     = Color3.fromRGB(24, 14,  52),
+    bg4     = Color3.fromRGB(18, 11,  40),
+    violet  = Color3.fromRGB(160, 60, 255),
+    magenta = Color3.fromRGB(220, 40, 255),
+    deep    = Color3.fromRGB(100, 20, 200),
+    accent3 = Color3.fromRGB(100, 40, 200),
+    text    = Color3.fromRGB(230, 215, 255),
+    dim     = Color3.fromRGB(140, 110, 190),
+    muted   = Color3.fromRGB(70,  50, 110),
+    green   = Color3.fromRGB(60,  255, 160),
+    red     = Color3.fromRGB(255,  60, 110),
+    white   = Color3.fromRGB(255, 255, 255),
+    cyan    = Color3.fromRGB(80,  220, 255),
+    gold    = Color3.fromRGB(255, 200,  80),
+    pink    = Color3.fromRGB(255, 100, 200),
+}
+
+-- ================================================
+-- THEME HELPERS
+-- ================================================
+local function TW(obj, props, t, style, dir)
+    TweenService:Create(obj,
+        TweenInfo.new(t or 0.2, style or Enum.EasingStyle.Quad, dir or Enum.EasingDirection.Out),
+        props):Play()
+end
+local function MkCorner(r, p)
+    Instance.new("UICorner", p).CornerRadius = UDim.new(0, r or 8)
+end
+local function MkStroke(col, thick, parent)
+    local s = Instance.new("UIStroke", parent)
+    s.Color = col or THEME.violet; s.Thickness = thick or 1; return s
+end
+local function MkGrad(parent, c1, c2, rot)
+    local g = Instance.new("UIGradient", parent)
+    g.Color = ColorSequence.new(c1, c2); g.Rotation = rot or 0; return g
+end
+local function MkFrame(parent, size, pos, color, alpha)
+    local f = Instance.new("Frame", parent)
+    f.Size = size; f.Position = pos or UDim2.new(0,0,0,0)
+    f.BackgroundColor3 = color or THEME.bg2
+    f.BackgroundTransparency = alpha or 0
+    f.BorderSizePixel = 0; return f
+end
+local function MkLabel(parent, text, size, pos, color, fs, bold, xa)
+    local l = Instance.new("TextLabel", parent)
+    l.Size = size; l.Position = pos or UDim2.new(0,0,0,0)
+    l.BackgroundTransparency = 1; l.Text = text
+    l.TextColor3 = color or THEME.text; l.TextSize = fs or 12
+    l.Font = bold and Enum.Font.GothamBold or Enum.Font.Gotham
+    l.TextXAlignment = xa or Enum.TextXAlignment.Left
+    l.BorderSizePixel = 0; return l
+end
+local function MkBtn(parent, text, size, pos, color, fs)
+    local b = Instance.new("TextButton", parent)
+    b.Size = size; b.Position = pos or UDim2.new(0,0,0,0)
+    b.BackgroundColor3 = color or THEME.violet
+    b.TextColor3 = THEME.white; b.TextSize = fs or 12
+    b.Font = Enum.Font.GothamBold; b.BorderSizePixel = 0
+    b.AutoButtonColor = false; b.Text = text
+    MkCorner(8, b)
+    b.MouseEnter:Connect(function() TW(b, {BackgroundColor3 = color:Lerp(THEME.white, 0.15)}, 0.12) end)
+    b.MouseLeave:Connect(function() TW(b, {BackgroundColor3 = color}, 0.12) end)
+    return b
+end
+local function MkToggleBtn(parent, text, size, pos, color, fs)
+    local b = Instance.new("TextButton", parent)
+    b.Size = size; b.Position = pos or UDim2.new(0,0,0,0)
+    b.BackgroundColor3 = color or THEME.violet
+    b.TextColor3 = THEME.white; b.TextSize = fs or 12
+    b.Font = Enum.Font.GothamBold; b.BorderSizePixel = 0
+    b.AutoButtonColor = false; b.Text = text
+    MkCorner(8, b)
+    b.MouseButton1Down:Connect(function() b.BackgroundTransparency = 0.3 end)
+    b.MouseButton1Up:Connect(function()   b.BackgroundTransparency = 0   end)
+    return b
+end
+local function MkOrbBg(parent)
+    local defs = {
+        {Color3.fromRGB(140,20,255),0.15,0.20,28},
+        {Color3.fromRGB(200,20,240),0.78,0.15,22},
+        {Color3.fromRGB(100,10,190),0.88,0.72,32},
+        {Color3.fromRGB(180,50,255),0.10,0.80,20},
+        {Color3.fromRGB(220,40,200),0.50,0.50,18},
+    }
+    local orbData = {}
+    for i, def in ipairs(defs) do
+        local sz  = def[4]
+        local orb = MkFrame(parent, UDim2.new(0,sz,0,sz), UDim2.new(def[2],0,def[3],0), def[1], 0.74)
+        orb.AnchorPoint = Vector2.new(0.5,0.5); MkCorner(sz/2, orb)
+        orbData[i] = {
+            orb=orb,bx=def[2],by=def[3],
+            px=math.random(0,628)/100,py=math.random(0,628)/100,
+            spd=math.random(5,9)/10,ax=math.random(3,6)/100,ay=math.random(3,6)/100
+        }
+    end
+    local t = 0
+    task.spawn(function()
+        while parent and parent.Parent do
+            t = t + 0.016
+            for _, d in ipairs(orbData) do
+                if d.orb and d.orb.Parent then
+                    d.orb.Position = UDim2.new(
+                        d.bx + math.sin(t*d.spd+d.px)*d.ax, 0,
+                        d.by + math.cos(t*d.spd+d.py)*d.ay, 0)
+                    d.orb.BackgroundTransparency = 0.70 + math.sin(t*d.spd*1.2+d.px)*0.12
+                end
+            end
+            task.wait(0.03)
+        end
+    end)
+end
+local function MkScanline(parent)
+    local sl = MkFrame(parent, UDim2.new(1,0,0,1), UDim2.new(0,0,0,0), THEME.magenta, 0.55)
+    sl.ZIndex = 9
+    local g = Instance.new("UIGradient", sl)
+    g.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0,   Color3.fromRGB(0,0,0)),
+        ColorSequenceKeypoint.new(0.5, THEME.magenta),
+        ColorSequenceKeypoint.new(1,   Color3.fromRGB(0,0,0)),
+    })
+    task.spawn(function()
+        while parent and parent.Parent do
+            TW(sl, {Position=UDim2.new(0,0,1,0), BackgroundTransparency=0.85}, 2.8, Enum.EasingStyle.Linear)
+            task.wait(2.9)
+            if not parent or not parent.Parent then break end
+            sl.Position = UDim2.new(0,0,0,0); sl.BackgroundTransparency = 0.55
+            task.wait(0.1)
+        end
+    end)
+end
+
+-- separator label (ganti makeSep lama → pakai tema launcher)
+local function makeSep(parent, yPos, text, color)
+    local bg = MkFrame(parent, UDim2.new(1,0,0,20), UDim2.new(0,0,0,yPos), THEME.bg3)
+    MkCorner(6, bg)
+    local stroke = MkStroke(color or THEME.violet, 0.7, bg)
+    local wash = MkFrame(bg, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), color or THEME.violet, 0.88)
+    MkCorner(6, wash)
+    MkGrad(wash, color or THEME.violet, THEME.magenta)
+    MkLabel(bg, "  "..text, UDim2.new(1,-8,1,0), UDim2.new(0,4,0,0), THEME.text, 10, true)
+    return bg
+end
+
+-- step row (ganti makeStepRow lama → pakai tema launcher)
+local function makeStepRow(parent, yPos, labelText, getter, setter, step, fmt, onChanged)
+    -- label
+    local lbl = MkLabel(parent, labelText,
+        UDim2.new(0.38,0,0,28), UDim2.new(0.04,0,0,yPos),
+        THEME.dim, 11, true)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+
+    -- value label
+    local valLbl = MkLabel(parent, string.format(fmt, getter()),
+        UDim2.new(0.26,0,0,28), UDim2.new(0.38,0,0,yPos),
+        THEME.green, 12, false)
+    valLbl.Font = Enum.Font.Code
+
+    -- minus button
+    local btnMinus = MkBtn(parent, "−",
+        UDim2.new(0.13,0,0,26), UDim2.new(0.65,0,0,yPos+1),
+        THEME.bg3, 14)
+    MkStroke(THEME.violet, 0.8, btnMinus)
+
+    -- plus button
+    local btnPlus = MkBtn(parent, "+",
+        UDim2.new(0.13,0,0,26), UDim2.new(0.82,0,0,yPos+1),
+        THEME.violet, 14)
+
+    btnMinus.MouseButton1Click:Connect(function()
+        setter(math.round((getter() - step) * 1000) / 1000)
+        valLbl.Text = string.format(fmt, getter())
+        if onChanged then onChanged() end
+    end)
+    btnPlus.MouseButton1Click:Connect(function()
+        setter(math.round((getter() + step) * 1000) / 1000)
+        valLbl.Text = string.format(fmt, getter())
+        if onChanged then onChanged() end
+    end)
+
+    return valLbl
+end
+
+local function MkToast(guiParent, msg, isErr)
+    local col = isErr and Color3.fromRGB(140,28,55) or Color3.fromRGB(20,110,62)
+    local n   = MkFrame(guiParent, UDim2.new(0,300,0,36), UDim2.new(0.5,-150,0,-50), col)
+    n.ZIndex  = 99; MkCorner(10, n); MkStroke(isErr and THEME.red or THEME.green, 1, n)
+    local lbl = MkLabel(n, (isErr and "⚠  " or "✓  ")..msg,
+        UDim2.new(1,-14,1,0), UDim2.new(0,8,0,0), THEME.white, 11, true)
+    lbl.ZIndex = 100
+    TweenService:Create(n, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+        {Position=UDim2.new(0.5,-150,0,8)}):Play()
+    task.delay(2.4, function()
+        if not n or not n.Parent then return end
+        TweenService:Create(n, TweenInfo.new(0.2), {Position=UDim2.new(0.5,-150,0,-50)}):Play()
+        task.wait(0.25); if n and n.Parent then n:Destroy() end
+    end)
+end
+
+-- ================================================
+-- CONFIG
+-- ================================================
+local defaultConfig = {
+    offset       = -0.1,
+    scaleXZ      = 1.0,
+    scaleY       = 1.0,
+    rightEnabled = true,
+    leftEnabled  = true,
+    headless     = false,
+    visualAll    = false,
+}
+local cfg = {}
+local function loadConfig()
+    -- isi default dulu, supaya cfg selalu lengkap walau load gagal
+    for k, v in pairs(defaultConfig) do cfg[k] = v end
+    local ok, data = pcall(function()
+        -- support berbagai executor: isfile boleh tidak ada
+        local hasFile = pcall(function()
+            return type(isfile) == "function" and isfile(CONFIG_FILE)
+        end)
+        if not hasFile then
+            -- fallback: coba readfile langsung, kalau error berarti tidak ada file
+            return HttpService:JSONDecode(readfile(CONFIG_FILE))
+        end
+        if isfile(CONFIG_FILE) then
+            return HttpService:JSONDecode(readfile(CONFIG_FILE))
+        end
+        return nil
+    end)
+    if ok and type(data) == "table" then
+        for k, v in pairs(defaultConfig) do
+            if data[k] ~= nil then cfg[k] = data[k] end
+        end
+    end
+end
+local function saveConfig()
+    pcall(function()
+        if writefile then
+            writefile(CONFIG_FILE, HttpService:JSONEncode(cfg))
+        end
+    end)
+end
+
+loadConfig()
+
+local currentOffset    = cfg.offset
+local rightEnabled     = cfg.rightEnabled
+local leftEnabled      = cfg.leftEnabled
+local headlessEnabled  = cfg.headless
+local visualAllEnabled = cfg.visualAll
+local scaleXZ          = cfg.scaleXZ
+local scaleY           = cfg.scaleY
+local uiVisible        = true
+
+-- ================================================
+-- HEADLESS
+-- ================================================
+local function applyHeadless(char)
+    if not char then return end
+    local head = char:FindFirstChild("Head"); if not head then return end
+    head.Transparency = 1
+    for _, v in pairs(head:GetChildren()) do
+        if v:IsA("Decal") then v.Transparency = 1 end
+    end
+end
+local function removeHeadless(char)
+    if not char then return end
+    local head = char:FindFirstChild("Head"); if not head then return end
+    head.Transparency = 0
+    for _, v in pairs(head:GetChildren()) do
+        if v:IsA("Decal") then v.Transparency = 0 end
+    end
+end
+
+-- ================================================
+-- REMOVE
+-- ================================================
+local function removeRight(char)
+    if not char then return end
+    -- hapus semua kemungkinan nama part kanan (R15 & R6)
+    for _, name in pairs({"KorbloxRightLeg", "KorbloxRightLegR6"}) do
+        local old = char:FindFirstChild(name); if old then old:Destroy() end
+    end
+    -- kembalikan transparansi kaki R15
+    for _, n in pairs({"RightUpperLeg","RightLowerLeg","RightFoot"}) do
+        local p = char:FindFirstChild(n); if p then p.Transparency = 0 end
+    end
+    -- kembalikan R6
+    local rLeg = char:FindFirstChild("Right Leg")
+    if rLeg then
+        local m = rLeg:FindFirstChild("KorbloxMesh"); if m then m:Destroy() end
+        rLeg.Transparency = 0
+        rLeg.Color = Color3.fromRGB(163,162,165)
+    end
+end
+local function removeLeft(char)
+    if not char then return end
+    -- hapus semua kemungkinan nama part kiri (R15 & R6)
+    for _, name in pairs({"KorbloxLeftLeg", "KorbloxLeftLegR6"}) do
+        local old = char:FindFirstChild(name); if old then old:Destroy() end
+    end
+    -- kembalikan transparansi kaki R15
+    for _, n in pairs({"LeftUpperLeg","LeftLowerLeg","LeftFoot"}) do
+        local p = char:FindFirstChild(n); if p then p.Transparency = 0 end
+    end
+    -- kembalikan R6
+    local lLeg = char:FindFirstChild("Left Leg")
+    if lLeg then
+        local m = lLeg:FindFirstChild("KorbloxMeshLeft"); if m then m:Destroy() end
+        lLeg.Transparency = 0
+        lLeg.Color = Color3.fromRGB(163,162,165)
+    end
+end
+
+-- ================================================
+-- APPLY
+-- ================================================
+local function getMeshScale(humanoid)
+    local base = 1
+    if humanoid and humanoid:FindFirstChild("BodyHeightScale") then
+        base = humanoid.BodyHeightScale.Value
+    end
+    return Vector3.new(scaleXZ * base, scaleY * base, scaleXZ * base)
+end
+local function applyKorbloxToTarget(char)
+    if not char then return end
+    local humanoid = char:WaitForChild("Humanoid", 5); if not humanoid then return end
+    removeRight(char); removeLeft(char)
+    local meshScale = getMeshScale(humanoid)
+    if humanoid.RigType == Enum.HumanoidRigType.R15 then
+        if rightEnabled then
+            local rLeg = char:WaitForChild("RightUpperLeg", 5)
+            if rLeg then
+                for _, n in pairs({"RightUpperLeg","RightLowerLeg","RightFoot"}) do
+                    local p = char:FindFirstChild(n); if p then p.Transparency = 1 end
+                end
+                local part = Instance.new("Part")
+                part.Name="KorbloxRightLeg"; part.CanCollide=false; part.Massless=true
+                part.Color=DARK_GREY_COLOR; part.Parent=char
+                local mesh = Instance.new("SpecialMesh", part)
+                mesh.MeshId=KORBLOX_MESH_ID; mesh.TextureId=KORBLOX_TEXTURE_ID; mesh.Scale=meshScale
+                local weld = Instance.new("Weld", part)
+                weld.Part0=rLeg; weld.Part1=part; weld.C0=CFrame.new(0,currentOffset,0)
+            end
+        end
+        if leftEnabled then
+            local lLeg = char:WaitForChild("LeftUpperLeg", 5)
+            if lLeg then
+                for _, n in pairs({"LeftUpperLeg","LeftLowerLeg","LeftFoot"}) do
+                    local p = char:FindFirstChild(n); if p then p.Transparency = 1 end
+                end
+                local part = Instance.new("Part")
+                part.Name="KorbloxLeftLeg"; part.CanCollide=false; part.Massless=true
+                part.Color=DARK_GREY_COLOR; part.Parent=char
+                local mesh = Instance.new("SpecialMesh", part)
+                mesh.MeshId=LEFT_MESH_ID; mesh.TextureId=KORBLOX_TEXTURE_ID; mesh.Scale=meshScale
+                local weld = Instance.new("Weld", part)
+                weld.Part0=lLeg; weld.Part1=part; weld.C0=CFrame.new(0,currentOffset,0)
+            end
+        end
+    else
+        if rightEnabled then
+            local rLeg = char:FindFirstChild("Right Leg")
+            if rLeg then
+                rLeg.Color = DARK_GREY_COLOR
+                local mesh = Instance.new("SpecialMesh"); mesh.Name="KorbloxMesh"
+                mesh.MeshId=KORBLOX_MESH_ID; mesh.TextureId=KORBLOX_TEXTURE_ID
+                mesh.Scale=meshScale; mesh.Offset=Vector3.new(0,currentOffset,0); mesh.Parent=rLeg
+            end
+        end
+        if leftEnabled then
+            local lLeg = char:FindFirstChild("Left Leg")
+            if lLeg then
+                lLeg.Color = DARK_GREY_COLOR
+                local mesh = Instance.new("SpecialMesh"); mesh.Name="KorbloxMeshLeft"
+                mesh.MeshId=LEFT_MESH_ID; mesh.TextureId=KORBLOX_TEXTURE_ID
+                mesh.Scale=meshScale; mesh.Offset=Vector3.new(0,currentOffset,0); mesh.Parent=lLeg
+            end
+        end
+    end
+    if headlessEnabled then applyHeadless(char) end
+end
+local function applyToEveryone()
+    for _, p in pairs(Players:GetPlayers()) do
+        if p.Character then applyKorbloxToTarget(p.Character) end
+    end
+end
+local function updateOffset(char)
+    if not char then return end
+    local humanoid = char:FindFirstChild("Humanoid"); if not humanoid then return end
+    if humanoid.RigType == Enum.HumanoidRigType.R15 then
+        for _, legName in pairs({"KorbloxRightLeg","KorbloxLeftLeg"}) do
+            local leg = char:FindFirstChild(legName)
+            if leg then
+                local w = leg:FindFirstChildWhichIsA("Weld")
+                if w then w.C0 = CFrame.new(0,currentOffset,0) end
+            end
+        end
+    else
+        local function upMesh(pName, mName)
+            local p = char:FindFirstChild(pName)
+            if p then local m = p:FindFirstChild(mName); if m then m.Offset = Vector3.new(0,currentOffset,0) end end
+        end
+        upMesh("Right Leg","KorbloxMesh"); upMesh("Left Leg","KorbloxMeshLeft")
+    end
+end
+local function updateScale()
+    local char = player.Character
+    local function setScale(c, legName, r6Name)
+        if not c then return end
+        local humanoid = c:FindFirstChild("Humanoid")
+        local ms = getMeshScale(humanoid)
+        local leg = c:FindFirstChild(legName)
+        if leg then local mesh = leg:FindFirstChildWhichIsA("SpecialMesh"); if mesh then mesh.Scale = ms end end
+        local r6 = c:FindFirstChild(r6Name)
+        if r6 then local mesh = r6:FindFirstChildWhichIsA("SpecialMesh"); if mesh then mesh.Scale = ms end end
+    end
+    setScale(char, "KorbloxRightLeg", "Right Leg")
+    setScale(char, "KorbloxLeftLeg",  "Left Leg")
+    if visualAllEnabled then
+        for _, p in pairs(Players:GetPlayers()) do
+            setScale(p.Character, "KorbloxRightLeg", "Right Leg")
+            setScale(p.Character, "KorbloxLeftLeg",  "Left Leg")
+        end
+    end
+end
+
+-- ================================================
+-- GUI — susunan persis UI lama, tema launcher
+-- ================================================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "EliteKorbloxHybrid"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Main frame — ukuran sama seperti UI lama (270 x 530)
+local mainFrame = Instance.new("Frame", screenGui)
+mainFrame.Size     = UDim2.new(0, 270, 0, 530)
+mainFrame.Position = UDim2.new(0.5, -135, 0.5, -265)
+mainFrame.BackgroundColor3 = THEME.bg
+mainFrame.BackgroundTransparency = 0.08
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.ClipsDescendants = true
+MkCorner(12, mainFrame)
+
+-- orb background + scanline
+MkFrame(mainFrame, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), THEME.violet, 0.94)
+MkOrbBg(mainFrame)
+MkScanline(mainFrame)
+
+-- pulsing border stroke
+local borderStroke = MkStroke(THEME.violet, 1.5, mainFrame)
+task.spawn(function()
+    while mainFrame and mainFrame.Parent do
+        TW(borderStroke, {Color=THEME.magenta}, 1.6, Enum.EasingStyle.Sine); task.wait(1.7)
+        if not mainFrame or not mainFrame.Parent then break end
+        TW(borderStroke, {Color=THEME.violet},  1.6, Enum.EasingStyle.Sine); task.wait(1.7)
+    end
+end)
+
+-- ── Title bar (pakai tema launcher, posisi sama seperti lama) ──
+local titleBarBg = MkFrame(mainFrame, UDim2.new(1,0,0,38), UDim2.new(0,0,0,0), THEME.bg4)
+MkCorner(12, titleBarBg)
+-- tutup pojok bawah agar seamless
+MkFrame(titleBarBg, UDim2.new(1,0,0,12), UDim2.new(0,0,1,-12), THEME.bg4)
+-- gradient wash
+local titleWash = MkFrame(titleBarBg, UDim2.fromScale(1,1), UDim2.new(0,0,0,0), THEME.violet, 0.88)
+MkGrad(titleWash, THEME.violet, THEME.magenta)
+-- strip atas
+local titleStrip = MkFrame(titleBarBg, UDim2.new(0.5,0,0,2), UDim2.new(0.25,0,0,0), THEME.violet)
+MkCorner(2, titleStrip); MkGrad(titleStrip, THEME.violet, THEME.magenta)
+-- pulsing dot
+local dot = MkFrame(titleBarBg, UDim2.new(0,7,0,7), UDim2.new(0,10,0.5,-3.5), THEME.green)
+MkCorner(4, dot)
+task.spawn(function()
+    while dot and dot.Parent do
+        TW(dot, {BackgroundTransparency=0.6}, 0.7, Enum.EasingStyle.Sine); task.wait(0.75)
+        if not dot or not dot.Parent then break end
+        TW(dot, {BackgroundTransparency=0},   0.7, Enum.EasingStyle.Sine); task.wait(0.75)
+    end
+end)
+-- title text
+local titleLbl = MkLabel(titleBarBg, "VISUAL KORBLOX BY AKENO",
+    UDim2.new(1,-60,1,0), UDim2.new(0,22,0,0), THEME.text, 11, true, Enum.TextXAlignment.Left)
+-- tag badge
+local tagF = MkFrame(titleBarBg, UDim2.new(0,44,0,14), UDim2.new(1,-82,0.5,-7), THEME.violet, 0.75)
+MkCorner(4, tagF); MkStroke(THEME.violet, 0.8, tagF)
+MkLabel(tagF, "VISUAL", UDim2.fromScale(1,1), UDim2.new(0,0,0,0), THEME.white, 8, true, Enum.TextXAlignment.Center)
+
+-- close button
+local btnClose = MkBtn(mainFrame, "✕",
+    UDim2.new(0, 24, 0, 24), UDim2.new(1, -28, 0, 7),
+    Color3.fromRGB(165, 38, 60), 11)
+btnClose.ZIndex = 10
+btnClose.MouseButton1Click:Connect(function() screenGui:Destroy() end)
+
+-- ── saveLbl (posisi sama seperti lama: y=488) ──
+local saveLbl = MkLabel(mainFrame, "✅ Config loaded",
+    UDim2.new(1,0,0,18), UDim2.new(0,0,0,488),
+    THEME.green, 11, false, Enum.TextXAlignment.Center)
+
+local function flashSaved(msg)
+    saveLbl.Text = msg or "💾 Config saved!"
+    saveLbl.TextColor3 = THEME.cyan
+    task.delay(2, function()
+        if saveLbl and saveLbl.Parent then
+            saveLbl.Text = ""
+        end
+    end)
+end
+
+-- ================================================
+-- BODY — susunan persis UI lama
+-- y mulai dari 40 (bawah titlebar)
+-- ================================================
+
+-- ── HEIGHT ── (y=40)
+makeSep(mainFrame, 40, "── HEIGHT ──", THEME.violet)
+
+-- Offset row (y=63)
+local valOffset = makeStepRow(mainFrame, 63,
+    "Offset",
+    function() return currentOffset end,
+    function(v)
+        currentOffset = v
+        cfg.offset = v
+        saveConfig(); flashSaved()
+    end,
+    0.05, "%.2f",
+    function()
+        updateOffset(player.Character)
+        if visualAllEnabled then
+            for _, p in pairs(Players:GetPlayers()) do updateOffset(p.Character) end
+        end
+    end
+)
+
+-- Reset Position button (y=95)
+local btnResetPos = MkBtn(mainFrame, "RESET POSITION",
+    UDim2.new(0.9,0,0,26), UDim2.new(0.05,0,0,95),
+    THEME.deep, 11)
+btnResetPos.MouseButton1Click:Connect(function()
+    currentOffset = defaultConfig.offset
+    cfg.offset = currentOffset
+    saveConfig(); flashSaved()
+    valOffset.Text = string.format("%.2f", currentOffset)
+    updateOffset(player.Character)
+    if visualAllEnabled then
+        for _, p in pairs(Players:GetPlayers()) do updateOffset(p.Character) end
+    end
+end)
+
+-- ── SIZE ── (y=129)
+makeSep(mainFrame, 129, "── SIZE ──", THEME.gold)
+
+-- Width XZ row (y=152)
+local valXZ = makeStepRow(mainFrame, 152,
+    "Width (XZ)",
+    function() return scaleXZ end,
+    function(v)
+        scaleXZ = math.max(0.1, v)
+        cfg.scaleXZ = scaleXZ
+        saveConfig(); flashSaved()
+    end,
+    0.05, "%.2f",
+    function() updateScale() end
+)
+
+-- Height Y row (y=185)
+local valY = makeStepRow(mainFrame, 185,
+    "Height (Y)",
+    function() return scaleY end,
+    function(v)
+        scaleY = math.max(0.1, v)
+        cfg.scaleY = scaleY
+        saveConfig(); flashSaved()
+    end,
+    0.05, "%.2f",
+    function() updateScale() end
+)
+
+-- Reset Size button (y=219)
+local btnResetSize = MkBtn(mainFrame, "RESET SIZE (1.0)",
+    UDim2.new(0.9,0,0,26), UDim2.new(0.05,0,0,219),
+    Color3.fromRGB(100, 60, 10), 11)
+btnResetSize.MouseButton1Click:Connect(function()
+    scaleXZ = 1; scaleY = 1
+    cfg.scaleXZ = 1; cfg.scaleY = 1
+    saveConfig(); flashSaved()
+    valXZ.Text = "1.00"; valY.Text = "1.00"
+    applyKorbloxToTarget(player.Character)
+    if visualAllEnabled then applyToEveryone() end
+end)
+
+-- ── KORBLOX ── (y=253)
+makeSep(mainFrame, 253, "── KORBLOX ──", THEME.violet)
+
+-- KANAN / KIRI toggle (y=276)
+local btnRight = MkToggleBtn(mainFrame,
+    rightEnabled and "KANAN: ON" or "KANAN: OFF",
+    UDim2.new(0.44,0,0,35), UDim2.new(0.04,0,0,276),
+    rightEnabled and THEME.green or THEME.red)
+local btnLeft2 = MkToggleBtn(mainFrame,
+    leftEnabled and "KIRI: ON" or "KIRI: OFF",
+    UDim2.new(0.44,0,0,35), UDim2.new(0.52,0,0,276),
+    leftEnabled and THEME.green or THEME.red)
+
+-- ── HEADLESS ── (y=319)
+makeSep(mainFrame, 319, "── HEADLESS ──", THEME.red)
+
+-- Headless button (y=342)
+local btnHeadless = MkToggleBtn(mainFrame,
+    headlessEnabled and "HEADLESS: ON" or "HEADLESS: OFF",
+    UDim2.new(0.9,0,0,35), UDim2.new(0.05,0,0,342),
+    headlessEnabled and THEME.green or THEME.red)
+
+-- ── LAINNYA ── (y=385)
+makeSep(mainFrame, 385, "── LAINNYA ──", THEME.dim)
+
+-- Visual All (y=408)
+local btnVisualAll = MkToggleBtn(mainFrame,
+    visualAllEnabled and "VISUAL ALL: ON" or "VISUAL ALL: OFF",
+    UDim2.new(0.9,0,0,30), UDim2.new(0.05,0,0,408),
+    visualAllEnabled and THEME.green or THEME.red)
+
+-- Reset All Config (y=444)
+local btnResetAll = MkBtn(mainFrame, "RESET ALL CONFIG",
+    UDim2.new(0.9,0,0,30), UDim2.new(0.05,0,0,444),
+    THEME.magenta, 11)
+
+-- info hint (y=508)
+local infoLbl = MkLabel(mainFrame,
+    "K = Hide/Show  |  Config auto-saved",
+    UDim2.new(1,0,0,20), UDim2.new(0,0,0,508),
+    THEME.muted, 10, false, Enum.TextXAlignment.Center)
+
+-- ================================================
+-- EVENTS
+-- ================================================
+btnRight.MouseButton1Click:Connect(function()
+    rightEnabled = not rightEnabled
+    cfg.rightEnabled = rightEnabled
+    saveConfig(); flashSaved()
+    btnRight.Text = rightEnabled and "KANAN: ON" or "KANAN: OFF"
+    TW(btnRight, {BackgroundColor3 = rightEnabled and THEME.green or THEME.red}, 0.15)
+    if rightEnabled then applyKorbloxToTarget(player.Character)
+    else removeRight(player.Character) end
+    if visualAllEnabled then applyToEveryone() end
+end)
+
+btnLeft2.MouseButton1Click:Connect(function()
+    leftEnabled = not leftEnabled
+    cfg.leftEnabled = leftEnabled
+    saveConfig(); flashSaved()
+    btnLeft2.Text = leftEnabled and "KIRI: ON" or "KIRI: OFF"
+    TW(btnLeft2, {BackgroundColor3 = leftEnabled and THEME.green or THEME.red}, 0.15)
+    if leftEnabled then applyKorbloxToTarget(player.Character)
+    else removeLeft(player.Character) end
+    if visualAllEnabled then applyToEveryone() end
+end)
+
+btnHeadless.MouseButton1Click:Connect(function()
+    headlessEnabled = not headlessEnabled
+    cfg.headless = headlessEnabled
+    saveConfig(); flashSaved()
+    btnHeadless.Text = headlessEnabled and "HEADLESS: ON" or "HEADLESS: OFF"
+    TW(btnHeadless, {BackgroundColor3 = headlessEnabled and THEME.green or THEME.red}, 0.15)
+    if headlessEnabled then applyHeadless(player.Character)
+    else removeHeadless(player.Character) end
+    if visualAllEnabled then
+        for _, p in pairs(Players:GetPlayers()) do
+            if p.Character then
+                if headlessEnabled then applyHeadless(p.Character)
+                else removeHeadless(p.Character) end
+            end
+        end
+    end
+end)
+
+btnVisualAll.MouseButton1Click:Connect(function()
+    visualAllEnabled = not visualAllEnabled
+    cfg.visualAll = visualAllEnabled
+    saveConfig(); flashSaved()
+    btnVisualAll.Text = visualAllEnabled and "VISUAL ALL: ON" or "VISUAL ALL: OFF"
+    TW(btnVisualAll, {BackgroundColor3 = visualAllEnabled and THEME.green or THEME.red}, 0.15)
+    if visualAllEnabled then applyToEveryone() end
+end)
+
+btnResetAll.MouseButton1Click:Connect(function()
+    for k, v in pairs(defaultConfig) do cfg[k] = v end
+    saveConfig(); flashSaved("💾 Config reset & saved!")
+    currentOffset    = cfg.offset
+    scaleXZ          = cfg.scaleXZ
+    scaleY           = cfg.scaleY
+    rightEnabled     = cfg.rightEnabled
+    leftEnabled      = cfg.leftEnabled
+    headlessEnabled  = cfg.headless
+    visualAllEnabled = cfg.visualAll
+    -- update angka
+    valOffset.Text = string.format("%.2f", currentOffset)
+    valXZ.Text     = string.format("%.2f", scaleXZ)
+    valY.Text      = string.format("%.2f", scaleY)
+    -- update toggle
+    btnRight.Text = rightEnabled and "KANAN: ON" or "KANAN: OFF"
+    TW(btnRight,    {BackgroundColor3 = rightEnabled    and THEME.green or THEME.red}, 0.15)
+    btnLeft2.Text = leftEnabled and "KIRI: ON" or "KIRI: OFF"
+    TW(btnLeft2,    {BackgroundColor3 = leftEnabled     and THEME.green or THEME.red}, 0.15)
+    btnHeadless.Text = headlessEnabled and "HEADLESS: ON" or "HEADLESS: OFF"
+    TW(btnHeadless,  {BackgroundColor3 = headlessEnabled and THEME.green or THEME.red}, 0.15)
+    btnVisualAll.Text = visualAllEnabled and "VISUAL ALL: ON" or "VISUAL ALL: OFF"
+    TW(btnVisualAll,  {BackgroundColor3 = visualAllEnabled and THEME.green or THEME.red}, 0.15)
+    applyKorbloxToTarget(player.Character)
+    if visualAllEnabled then applyToEveryone() end
+    MkToast(screenGui, "Semua config di-reset!")
+end)
+
+-- Hide / Show  K
+-- Hide / Show  K
+UIS.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.K then
+        uiVisible = not uiVisible
+        if uiVisible then
+            mainFrame.Visible = true
+            TweenService:Create(mainFrame, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+                Size = UDim2.new(0, 270, 0, 530),
+                BackgroundTransparency = 0.08
+            }):Play()
+        else
+            TweenService:Create(mainFrame, TweenInfo.new(0.25, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {
+                Size = UDim2.new(0, 270, 0, 0),
+                BackgroundTransparency = 1
+            }):Play()
+            task.delay(0.26, function()
+                if not uiVisible and mainFrame and mainFrame.Parent then
+                    mainFrame.Visible = false
+                end
+            end)
+        end
+    end
+end)
+
+-- ================================================
+-- RUN
+-- ================================================
+
+-- apply saat pertama load — pakai task.spawn supaya tidak blocking
+-- dan WaitForChild supaya tunggu karakter benar-benar siap
+task.spawn(function()
+    local char = player.Character or player.CharacterAdded:Wait()
+    -- tunggu HumanoidRootPart sebagai sinyal karakter sudah fully loaded
+    char:WaitForChild("HumanoidRootPart", 10)
+    char:WaitForChild("Humanoid", 10)
+    task.wait(0.3)  -- sedikit buffer tambahan
+    applyKorbloxToTarget(char)
+    if headlessEnabled then applyHeadless(char) end
+end)
+
+player.CharacterAdded:Connect(function(c)
+    -- hapus semua sisa korblox dari karakter sebelumnya (jaga-jaga)
+    for _, name in pairs({"KorbloxRightLeg","KorbloxLeftLeg","KorbloxRightLegR6","KorbloxLeftLegR6"}) do
+        local old = c:FindFirstChild(name); if old then old:Destroy() end
+    end
+    c:WaitForChild("HumanoidRootPart", 10)
+    c:WaitForChild("Humanoid", 10)
+    task.wait(0.5)
+    applyKorbloxToTarget(c)
+    if headlessEnabled then applyHeadless(c) end
+end)
+
+-- Loop visualAll — hanya updateOffset, anti-blink
+task.spawn(function()
+    while task.wait(3) do
+        if visualAllEnabled then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p.Character then updateOffset(p.Character) end
+            end
+        end
+    end
+end)
+
+-- Handle player baru join
+-- Handle player baru join
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function(c)
+        c:WaitForChild("HumanoidRootPart", 10)
+        task.wait(0.5)
+        if visualAllEnabled then applyKorbloxToTarget(c) end
+    end)
+end)
+
+end  -- TUTUP loadKorblox di sini
+
+-- ================================================
+-- ENTRY POINT — di luar semua fungsi
+-- ================================================
+math.randomseed(tick())
+task.spawn(function()
+    showLauncher()
+end)
